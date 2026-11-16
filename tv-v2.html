@@ -87,10 +87,6 @@ html,body{margin:0;height:100%;background:#000;color:var(--txt);font-family:Inte
 .vc-resp b.none{color:#a0a7b6;font-weight:700;}
 .vc-resp .mot{font-size:calc(var(--u)*1.25);color:#5a6378;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .vc-st{flex:0 0 30%;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 calc(var(--u)*.6);font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:calc(var(--u)*1.45);color:#fff;text-transform:uppercase;line-height:1.05;overflow:hidden;word-break:break-word;}
-.vc.done{background:#e3f7ea;border-left-color:var(--verde)!important;}
-.vc.done .vc-mov,.vc.done .vc-op,.vc.done .vc-resp b{color:#13723a!important;}
-.vc.done .vc-resp{background:#d2f0dc;}
-.st-ok{background:var(--verde);}
 .st-aguard{background:#ff9800;} .st-urg{background:var(--vermelho);} .st-agentes{background:#2f86d6;} .st-nf{background:var(--cinza);} .st-parcial{background:#b98a00;}
 
 /* Placa Mercosul */
@@ -390,19 +386,26 @@ function renderOps(){
   const tot = pend.length + done.length;
   $('opsBar').style.width = (tot ? Math.round(done.length/tot*100) : 0) + '%';
 
-  // todas as operações juntas no mesmo painel: a fazer primeiro, concluídas (em verde) agrupadas no fim
-  $('doneBox').style.display = 'none';
-  const all = pend.concat(done);
+  // concluídas
+  const box = $('doneBox');
+  if(done.length){
+    box.style.display = 'flex';
+    $('doneTitle').textContent = `✔ Concluídas (${done.length})`;
+    $('doneList').innerHTML = done.map(a=>`<div class="dc">${plateHTML(a.op.placa,true)}<div class="tx"><b>${esc(MOV_LBL[a.mov]||'')} ✔</b><span>${esc(shortName(a.resp)||'—')}${a.hora?' · '+a.hora:''}</span></div></div>`).join('');
+    trimDone();
+  } else box.style.display = 'none';
+
+  // páginas dos pendentes
   const grid = $('opsGrid');
-  if(!all.length){
+  if(!pend.length){
     opsPages = [[]];
     grid.style.display='flex';
-    grid.innerHTML = '<div class="empty">Nenhuma operação cadastrada para hoje.<br><small style="font-size:.7em">Cadastre os veículos em config-v2.html</small></div>';
+    grid.innerHTML = `<div class="empty">${lista.length ? '🎉 Todas as operações cadastradas foram concluídas!' : 'Nenhuma operação cadastrada para hoje.<br><small style="font-size:.7em">Cadastre os veículos em config-v2.html</small>'}</div>`;
     $('opsPage').textContent='';
     return;
   }
   grid.style.display='grid';
-  layoutOps(all);
+  layoutOps(pend);
 }
 function trimDone(){
   // todas as concluídas ficam visíveis: o bloco verde diminui o tamanho até caber
@@ -434,13 +437,13 @@ function drawOpsPage(){
   const grid = $('opsGrid'); const u = grid.dataset.u || 10;
   const page = opsPages[opsPageIdx] || [];
   grid.innerHTML = page.map(a=>`
-    <div class="vc mv-${a.mov}${a.urg&&!a.done?' urg':''}${a.done?' done':''}" style="--u:${u}px">
+    <div class="vc mv-${a.mov}${a.urg?' urg':''}" style="--u:${u}px">
       <div class="vc-top">${plateHTML(a.op.placa)}
         <div class="vc-info"><div class="vc-mov">${esc(MOV_LBL[a.mov]||'')}</div><div class="vc-op">${esc(a.op.operacao||'—')}</div></div>
       </div>
       <div class="vc-bot">
         <div class="vc-resp"><small>Responsável</small><b class="${a.resp?'':'none'}">${esc(shortName(a.resp)||'a definir')}</b>${a.op.motorista?`<div class="mot">🚚 ${esc(a.op.motorista)}</div>`:''}</div>
-        ${a.done?`<div class="vc-st st-ok">✔ OK${a.hora?'<br>'+a.hora:''}</div>`:`<div class="vc-st ${a.cls}">${esc(a.st)}</div>`}
+        <div class="vc-st ${a.cls}">${esc(a.st)}</div>
       </div>
     </div>`).join('');
   $('opsPage').textContent = opsPages.length>1 ? `Página ${opsPageIdx+1}/${opsPages.length}` : '';
