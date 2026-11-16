@@ -151,10 +151,7 @@ textarea{min-height:70px;resize:vertical;}
         <tbody id="scrRows"></tbody>
       </table>
       <label class="chk"><input type="checkbox" id="cInter"/> Intercalar: a tela de <b>Operações</b> volta entre cada uma das outras (fica muito mais tempo na TV)</label>
-      <div style="display:flex;gap:16px;align-items:end;margin-top:6px;flex-wrap:wrap">
-        <div style="width:260px"><label>Cards por página na tela de Operações</label><input type="number" id="cPorPag" min="0" max="30"/></div>
-        <div class="hint" style="flex:1">0 = automático (cabe o máximo legível; se não couber, a tela troca de página sozinha). <span id="cicloInfo"></span></div>
-      </div>
+      <div class="hint" style="margin-top:6px">Todos os veículos aparecem juntos na tela de Operações (os cards diminuem para caber). <span id="cicloInfo"></span></div>
     </div>
     <div class="box" style="grid-column:1/-1">
       <h2>🔑 Acesso — Sistema de Conferência</h2>
@@ -421,7 +418,6 @@ function lerForm(){
     CFG.v2.zoom[k] = Math.min(200, Math.max(50, +$('zoom_'+k).value || 100));
   });
   CFG.v2.intercalar = $('cInter').checked;
-  CFG.v2.porPagina = Math.max(0, +$('cPorPag').value || 0);
 }
 function salvarCfg(){
   lerForm();
@@ -434,7 +430,7 @@ function preencherForm(){
   $('cTicker').value = CFG.ticker||''; $('cSafety').value = CFG.safetyDate||''; $('cEmail').value = CFG.sys1Email||''; $('cPass').value = CFG.sys1Pass||'';
   $('scrRows').innerHTML = SCREENS.map(([k,n])=>`<tr><td><input type="checkbox" id="on_${k}" ${CFG.v2.on[k]!==false?'checked':''}/></td><td><b>${n}</b></td>
     <td><input type="number" id="dur_${k}" min="5" value="${CFG.v2.dur[k]}"/></td><td><input type="number" id="zoom_${k}" min="50" max="200" value="${CFG.v2.zoom[k]}"/></td></tr>`).join('');
-  $('cInter').checked = !!CFG.v2.intercalar; $('cPorPag').value = CFG.v2.porPagina||0;
+  $('cInter').checked = !!CFG.v2.intercalar;
   cicloInfo();
 }
 function cicloInfo(){
