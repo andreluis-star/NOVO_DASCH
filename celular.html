@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#0b1426"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>Operações do dia — PortoEx</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<style>
+:root{--bg:#0b1426;--card:#16233f;--line:#26375a;--txt:#eef2f8;--muted:#94a3c0;--laranja:#E8611A;--amarelo:#f4c20d;--verde:#1fa851;--vermelho:#e64545;--carga:#2f9e5b;--descarga:#d9822b;--ambos:#7b61d6;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:15px;padding-bottom:env(safe-area-inset-bottom);}
+.cond{font-family:'Barlow Condensed','Arial Narrow',sans-serif;}
+header{position:sticky;top:0;z-index:10;background:linear-gradient(180deg,#101c35,#0c1730);border-bottom:3px solid var(--laranja);padding:10px 14px 10px;padding-top:calc(10px + env(safe-area-inset-top));}
+.h1{display:flex;align-items:center;gap:10px;}
+.h1 h1{margin:0;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:22px;letter-spacing:.3px;text-transform:uppercase;flex:1;line-height:1;}
+.h1 small{display:block;color:var(--muted);font-family:Inter,sans-serif;font-size:11.5px;font-weight:600;text-transform:none;letter-spacing:0;margin-top:3px;}
+.clock{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:26px;color:var(--amarelo);font-variant-numeric:tabular-nums;}
+.kp{display:flex;gap:6px;margin-top:8px;}
+.kp div{flex:1;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:3px 6px;display:flex;align-items:baseline;justify-content:center;gap:6px;}
+.kp b{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;line-height:1;}
+.kp span{font-size:10.5px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.4px;}
+.kp .pend b{color:var(--amarelo);} .kp .ok b{color:#5fe08f;}
+.bar{height:6px;background:#0d1730;border-radius:6px;overflow:hidden;margin-top:8px;}
+.bar div{height:100%;background:linear-gradient(90deg,#13723a,var(--verde));transition:width .6s;}
+.tools{display:flex;gap:6px;margin-top:8px;overflow-x:auto;scrollbar-width:none;}
+.tools::-webkit-scrollbar{display:none;}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:18px;padding:5px 11px;font-weight:800;font-size:12.5px;font-family:inherit;}
+.chip.on{background:var(--laranja);border-color:var(--laranja);color:#fff;}
+.search{margin-top:8px;display:flex;gap:6px;}
+.search input,.search select{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:7px 9px;font-size:14px;font-family:inherit;}
+.search select{flex:0 0 42%;}
+
+main{padding:10px 12px 30px;}
+.sec{display:flex;align-items:center;gap:8px;margin:14px 2px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:19px;text-transform:uppercase;letter-spacing:.4px;}
+.sec.pend{color:var(--amarelo);} .sec.ok{color:#5fe08f;}
+.sec .n{background:rgba(255,255,255,.08);border-radius:10px;padding:0 8px;font-size:16px;}
+.row{display:flex;align-items:stretch;background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:8px;overflow:hidden;}
+.row .side{width:6px;flex:0 0 6px;}
+.c-carga .side{background:var(--carga);} .c-descarga .side{background:var(--descarga);} .c-carga_descarga .side{background:var(--ambos);}
+.row .body{flex:1;min-width:0;padding:9px 10px;}
+.l1{display:flex;align-items:center;gap:8px;}
+.pl{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:800;font-size:22px;letter-spacing:.06em;background:#fff;color:#111;border:2px solid #111;border-radius:5px;padding:0 6px;line-height:1.15;border-top:6px solid #0039a6;}
+.mv{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:17px;text-transform:uppercase;}
+.c-carga .mv{color:#4fd389;} .c-descarga .mv{color:#ffa451;} .c-carga_descarga .mv{color:#b49cff;}
+.st{margin-left:auto;font-size:11px;font-weight:800;text-transform:uppercase;padding:3px 8px;border-radius:10px;white-space:nowrap;color:#fff;}
+.st-aguard{background:#ff9800;} .st-urg{background:var(--vermelho);animation:blink 1.2s infinite;} .st-agentes{background:#2f86d6;} .st-nf{background:#5c6478;} .st-parcial{background:#b98a00;} .st-ok{background:var(--verde);}
+@keyframes blink{50%{opacity:.55}}
+.l2{margin-top:5px;font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.l3{margin-top:3px;display:flex;gap:12px;color:var(--muted);font-size:12.5px;font-weight:600;flex-wrap:wrap;}
+.l3 .resp{color:#fff;}
+.l3 .resp.none{color:#ff9d9d;}
+.row.urg{border-color:var(--vermelho);}
+.row.mine{box-shadow:0 0 0 2px var(--amarelo) inset;}
+.row.done{background:rgba(31,168,81,.10);border-color:rgba(31,168,81,.35);}
+.row.done .pl{opacity:.85;}
+.empty{color:var(--muted);text-align:center;padding:28px 10px;line-height:1.5;}
+.foot{color:var(--muted);font-size:11.5px;text-align:center;margin-top:16px;}
+.err{background:rgba(230,69,69,.15);border:1px solid rgba(230,69,69,.4);color:#ffb0b0;border-radius:10px;padding:10px;margin-top:10px;font-size:13px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="h1"><h1>Operações do dia<small id="sub">Carregando…</small></h1><div class="clock" id="clk">--:--</div></div>
+  <div class="kp">
+    <div class="pend"><b id="kPend">0</b><span>A fazer</span></div>
+    <div class="ok"><b id="kOk">0</b><span>Concluídas</span></div>
+    <div><b id="kTot">0</b><span>No painel</span></div>
+  </div>
+  <div class="bar"><div id="bar" style="width:0"></div></div>
+  <div class="tools" id="filtros">
+    <button class="chip on" data-f="todos">Todos</button>
+    <button class="chip" data-f="meus">⭐ Meus</button>
+    <button class="chip" data-f="carga">Carga</button>
+    <button class="chip" data-f="descarga">Descarga</button>
+    <button class="chip" data-f="semresp">Sem responsável</button>
+  </div>
+  <div class="search">
+    <input type="search" id="busca" placeholder="🔎 Placa, motorista, cliente" autocomplete="off"/>
+    <select id="eu"><option value="">Eu sou…</option></select>
+  </div>
+</header>
+<main id="main"><div class="empty">Carregando operações…</div></main>
+
+<script>
+/* =====================================================================
+   OPERAÇÕES DO DIA — CONSULTA NO CELULAR (somente leitura)
+   Mesmos dados da tela de Operações da TV:
+   • dasch_config/painel → opsV2 (veículos cadastrados hoje no config-v2)
+   • operacoes (Conferência Geral) → conclui sozinho: Carga = SAÍDA, Descarga = ENTRADA
+   Modo demonstração: celular.html?demo=1
+===================================================================== */
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,'0');
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s==null?'':s).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().trim();
+const plateKey = s => String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+const hojeBR = () => { const d=new Date(); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear(); };
+const tsMs = t => t && t.toMillis ? t.toMillis() : (t && t.seconds ? t.seconds*1000 : 0);
+const hhmm = ms => { if(!ms) return ''; const d=new Date(ms); return pad(d.getHours())+':'+pad(d.getMinutes()); };
+const shortName = s => { const p=String(s||'').trim().split(/\s+/); return p.length>2 ? p[0]+' '+p[p.length-1] : p.join(' '); };
+const MOV_LBL = {carga:'Carga', descarga:'Descarga', carga_descarga:'Carga + Desc.'};
+const LS_EU = 'dasch_cel_eu', LS_CFG = 'dasch_config_v1';
+
+let OPS = { dia:'', lista:[] }, CONF = [], confOk = null, filtro = 'todos', busca = '', eu = localStorage.getItem(LS_EU) || '';
+
+function avaliar(op, idx){
+  const c = idx[plateKey(op.placa)] || {s:[],e:[]};
+  const mov = op.mov || 'carga', temC = c.s.length>0, temD = c.e.length>0, man = norm(op.status);
+  let done = false, parcial = '';
+  if(man.startsWith('CONCLU')) done = true;
+  else if(mov==='carga') done = temC;
+  else if(mov==='descarga') done = temD;
+  else { done = temC && temD; if(!done && temD) parcial='Falta carga'; else if(!done && temC) parcial='Falta descarga'; }
+  const docs = [...c.s, ...c.e].sort((a,b)=>tsMs(a.timestamp)-tsMs(b.timestamp)); const last = docs[docs.length-1];
+  let st='A fazer', cls='st-aguard';
+  if(man.includes('URGEN')){ st='Urgência'; cls='st-urg'; }
+  else if(man.includes('AGENTE')){ st='Agentes'; cls='st-agentes'; }
+  else if(man.includes('NAO FOI')){ st='Não foi feito'; cls='st-nf'; }
+  else if(parcial){ st=parcial; cls='st-parcial'; }
+  if(done){ st = '✔ '+(last?hhmm(tsMs(last.timestamp)):'OK'); cls='st-ok'; }
+  return { op, mov, done, st, cls, resp: op.conferente || (last && last.conferenteNome) || '', urg: man.includes('URGEN') && !done };
+}
+function render(){
+  const idx = {};
+  CONF.forEach(o=>{ const k=plateKey(o.placa); if(!k) return; const x=idx[k]=idx[k]||{s:[],e:[]}; (o.tipoExecucao==='SAIDA'?x.s:x.e).push(o); });
+  const lista = OPS.dia===hojeBR() ? (OPS.lista||[]).filter(o=>o&&o.placa) : [];
+  const all = lista.map(o=>avaliar(o, idx));
+  const pend = all.filter(a=>!a.done), ok = all.filter(a=>a.done);
+  $('kPend').textContent = pend.length; $('kOk').textContent = ok.length; $('kTot').textContent = all.length;
+  $('bar').style.width = (all.length ? Math.round(ok.length/all.length*100) : 0) + '%';
+
+  // lista de "Eu sou…" com os responsáveis do dia
+  const nomes = [...new Set(all.map(a=>a.resp).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt'));
+  if(eu && !nomes.includes(eu)) nomes.unshift(eu);
+  $('eu').innerHTML = '<option value="">Eu sou…</option>' + nomes.map(n=>`<option${n===eu?' selected':''}>${esc(n)}</option>`).join('');
+
+  const q = norm(busca);
+  const passa = a => {
+    if(filtro==='meus' && (!eu || a.resp!==eu)) return false;
+    if(filtro==='carga' && a.mov==='descarga') return false;
+    if(filtro==='descarga' && a.mov==='carga') return false;
+    if(filtro==='semresp' && a.resp) return false;
+    if(q && !norm([a.op.placa,a.op.motorista,a.op.operacao,a.resp].join(' ')).includes(q)) return false;
+    return true;
+  };
+  const byPlate = (a,b)=>plateKey(a.op.placa).localeCompare(plateKey(b.op.placa));
+  const P = pend.filter(passa).sort((a,b)=>(b.urg-a.urg)||byPlate(a,b));
+  const O = ok.filter(passa).sort(byPlate);
+
+  const row = a => `<div class="row c-${a.mov}${a.urg?' urg':''}${a.done?' done':''}${eu&&a.resp===eu?' mine':''}"><div class="side"></div><div class="body">
+      <div class="l1"><span class="pl">${esc(plateKey(a.op.placa))}</span><span class="mv">${esc(MOV_LBL[a.mov]||'')}</span><span class="st ${a.cls}">${esc(a.st)}</span></div>
+      <div class="l2">${esc(a.op.operacao||'—')}</div>
+      <div class="l3"><span class="resp${a.resp?'':' none'}">👷 ${esc(a.resp?shortName(a.resp):'sem responsável')}</span>${a.op.motorista?`<span>🚚 ${esc(a.op.motorista)}</span>`:''}</div>
+    </div></div>`;
+
+  let h = '';
+  if(confOk===false) h += '<div class="err">⚠ Sem conexão com o Sistema de Conferência — a conclusão automática pode estar desatualizada.</div>';
+  if(!all.length) h += '<div class="empty">Nenhuma operação cadastrada para hoje ainda.</div>';
+  else {
+    h += `<div class="sec pend">⏳ A fazer <span class="n">${P.length}</span></div>` + (P.length ? P.map(row).join('') : '<div class="empty">Nada pendente neste filtro 👍</div>');
+    h += `<div class="sec ok">✔ Concluídas <span class="n">${O.length}</span></div>` + (O.length ? O.map(row).join('') : '<div class="empty">Nenhuma concluída neste filtro.</div>');
+  }
+  h += `<div class="foot">Atualiza sozinho · ${hhmm(Date.now())}</div>`;
+  $('main').innerHTML = h;
+  $('sub').textContent = hojeBR() + (eu ? ' · ' + shortName(eu) : '');
+}
+
+/* ---------------- interação ---------------- */
+$('filtros').addEventListener('click', e=>{
+  const b = e.target.closest('.chip'); if(!b) return;
+  if(b.dataset.f==='meus' && !eu){ $('eu').focus(); alert('Escolha seu nome em "Eu sou…" para ver só os seus.'); return; }
+  filtro = b.dataset.f; [...$('filtros').children].forEach(x=>x.classList.toggle('on', x===b)); render();
+});
+$('busca').addEventListener('input', e=>{ busca = e.target.value; render(); });
+$('eu').addEventListener('change', e=>{ eu = e.target.value; try{ localStorage.setItem(LS_EU, eu); }catch(_){} render(); });
+function tick(){ const d=new Date(); $('clk').textContent = pad(d.getHours())+':'+pad(d.getMinutes()); }
+tick(); setInterval(tick, 15000);
+
+/* ---------------- Firebase ---------------- */
+const SYS1 = { apiKey:"AIzaSyBp_ZfFiz1qWr4Gb4bc5h5mI1kHnjPwyCA", authDomain:"conferenciaptx.firebaseapp.com", projectId:"conferenciaptx", storageBucket:"conferenciaptx.firebasestorage.app", messagingSenderId:"78686885828", appId:"1:78686885828:web:0d70d13e2abaf35ee23691" };
+let CRED = { e:'andre.luis@portoex.com.br', p:'andre185166' };
+try{ const c = JSON.parse(localStorage.getItem(LS_CFG)||'{}'); if(c.sys1Email){ CRED = {e:c.sys1Email, p:c.sys1Pass}; } }catch(e){}
+let fs=null, opsUnsub=null, opsDia='';
+function subscribeConf(){
+  const t = hojeBR(); if(opsDia===t) return; if(opsUnsub) opsUnsub(); opsDia=t;
+  opsUnsub = fs.collection('operacoes').where('dataRef','==',t).onSnapshot(s=>{ CONF = s.docs.map(d=>d.data()); confOk=true; render(); }, e=>{ console.warn(e); confOk=false; render(); });
+}
+function init(){
+  if(new URLSearchParams(location.search).get('demo')==='1') return demo();
+  if(typeof firebase==='undefined'){ $('main').innerHTML='<div class="err">Sem internet ou o Firebase não carregou.</div>'; return; }
+  const app = firebase.initializeApp(SYS1); fs = app.firestore();
+  app.auth().signInWithEmailAndPassword(CRED.e, CRED.p).then(()=>{
+    fs.collection('dasch_config').doc('painel').onSnapshot(d=>{ const v = d.exists && d.data().opsV2; OPS = v || {dia:'',lista:[]}; render(); }, e=>{ $('main').innerHTML='<div class="err">Sem acesso ao painel: '+esc(e.message)+'</div>'; });
+    subscribeConf(); setInterval(()=>{ subscribeConf(); render(); }, 60000);
+  }).catch(e=>{ $('main').innerHTML='<div class="err">Não foi possível conectar: '+esc(e.message)+'</div>'; });
+}
+function demo(){
+  const now = Date.now()/1000;
+  OPS = { dia:hojeBR(), lista:[
+    {placa:'RXA4F21',motorista:'CARLOS SILVA',mov:'carga',operacao:'ENTREGA MATTEL',conferente:'JOAO ARAUJO COSTA',status:''},
+    {placa:'QJT8B55',motorista:'MARCOS LIMA',mov:'descarga',operacao:'COLETA BRAFT',conferente:'',status:''},
+    {placa:'MLK2J09',motorista:'PEDRO ALVES',mov:'carga_descarga',operacao:'ENTREGA SADIA + COLETA BRAFT',conferente:'ABNER FERNANDO DOS SANTOS',status:''},
+    {placa:'BCD1E23',motorista:'RAFAEL SOUZA',mov:'carga',operacao:'EMBARQUE CAMELON',conferente:'GUILHERME PEREIRA DE JESUS',status:'URGÊNCIA'},
+    {placa:'FGH3I45',motorista:'LUCAS ROCHA',mov:'carga',operacao:'ENTREGA WINWIN',conferente:'JOAO ARAUJO COSTA',status:''},
+    {placa:'KLM6N78',motorista:'ANDRÉ PRADO',mov:'descarga',operacao:'COLETA MATTEL',conferente:'THIERRY HENRY LIMA DA LUZ',status:''},
+    {placa:'UVW2X34',motorista:'DIEGO RAMOS',mov:'carga',operacao:'ENTREGA MATTEL',conferente:'JOAO ARAUJO COSTA',status:''},
+  ]};
+  CONF = [{placa:'KLM6N78',tipoExecucao:'ENTRADA',conferenteNome:'THIERRY HENRY LIMA DA LUZ',timestamp:{seconds:now-900}},
+          {placa:'UVW2X34',tipoExecucao:'SAIDA',conferenteNome:'JOAO ARAUJO COSTA',timestamp:{seconds:now-300}},
+          {placa:'MLK2J09',tipoExecucao:'ENTRADA',conferenteNome:'ABNER FERNANDO DOS SANTOS',timestamp:{seconds:now-200}}];
+  confOk = true; eu = eu || 'JOAO ARAUJO COSTA'; render();
+}
+init();
+</script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 # NOVO DASCH — Painel da Expedição PortoEx (TV)
 
 - `tv-v2.html` — exibição na TV (abre direto pelo `index.html`)
+- `celular.html` — consulta rápida das Operações do dia no celular (conferentes)
 - `config-v2.html` — cadastro rápido das operações do dia e configurações (letreiro, telas, segurança)
 - Prévia com dados fictícios: `tv-v2.html?demo=1` (uma tela só: `?demo=1&tela=ops|resumo|equipe|conf|pal`)
 
