@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DASCH v2 — Painel Expedição PortoEx (TV)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{
+  --navy:#0b1426; --navy2:#12203b; --card:#16233f; --line:#27375a;
+  --txt:#eef2f8; --muted:#94a3c0;
+  --laranja:#E8611A; --azul:#1A3A6E; --amarelo:#f4c20d;
+  --verde:#1fa851; --verde-esc:#13723a; --vermelho:#e64545; --cinza:#5c6478;
+  --carga:#2f9e5b; --descarga:#d9822b; --ambos:#7b61d6;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;background:#000;color:var(--txt);font-family:Inter,'Segoe UI',Arial,sans-serif;overflow:hidden;}
+.cond{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;}
+#app{position:fixed;inset:0;display:flex;flex-direction:column;background:radial-gradient(circle at 20% 0%,#16274a,var(--navy) 60%);}
+.gear{position:absolute;top:10px;left:10px;z-index:99;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.15);color:#fff;display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:16px;opacity:.35;}
+.gear:hover{opacity:1;}
+
+/* ---------- cabeçalho compacto ---------- */
+.top{flex:0 0 11vh;display:flex;align-items:center;gap:2vw;padding:0 2.2vw;background:linear-gradient(180deg,#101c35,#0c1730);border-bottom:3px solid var(--laranja);}
+.top img{height:62%;max-height:90px;object-fit:contain;}
+.top .ttl{flex:1;min-width:0;}
+.top .ttl .t1{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:5.2vh;letter-spacing:.5px;text-transform:uppercase;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.top .ttl .t2{color:var(--muted);font-size:2vh;margin-top:.5vh;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dots{display:flex;gap:.6vw;align-items:center;}
+.dots i{width:1.1vh;height:1.1vh;border-radius:50%;background:#33456b;display:block;}
+.dots i.on{background:var(--laranja);width:3.2vh;border-radius:1vh;}
+.clock{text-align:right;line-height:1;}
+.clock .h{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:7.6vh;color:var(--amarelo);font-variant-numeric:tabular-nums;}
+.clock .d{color:var(--muted);font-size:1.9vh;text-transform:capitalize;margin-top:.3vh;}
+
+/* ---------- área das telas ---------- */
+#wrap{flex:1;min-height:0;position:relative;}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;padding:1.6vh 1.6vw;gap:1.4vh;transform-origin:top left;}
+.screen.on{display:flex;animation:fade .5s ease;}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.progress{position:absolute;left:0;bottom:0;height:.5vh;background:var(--laranja);width:0;z-index:5;}
+
+/* ---------- letreiro ---------- */
+.ticker{flex:0 0 6.4vh;display:flex;align-items:center;gap:1.2vw;padding:0 1.4vw;background:#0e1830;border-top:1px solid var(--line);overflow:hidden;}
+.live{display:flex;align-items:center;gap:.5vw;color:var(--vermelho);font-weight:800;font-size:1.9vh;letter-spacing:2px;white-space:nowrap;}
+.live b{width:1.2vh;height:1.2vh;border-radius:50%;background:var(--vermelho);animation:blink 1.4s infinite;}
+@keyframes blink{50%{opacity:.25}}
+.tk-box{flex:1;position:relative;height:100%;overflow:hidden;}
+.tk-track{position:absolute;top:50%;white-space:nowrap;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:4.2vh;text-transform:uppercase;transform:translate(100%,-50%);animation:tk linear infinite;}
+@keyframes tk{from{transform:translate(100vw,-50%)}to{transform:translate(-100%,-50%)}}
+
+/* =========================================================
+   TELA OPERAÇÕES — cards com placa Mercosul
+   ========================================================= */
+.ops-head{display:flex;align-items:center;gap:1.2vw;flex:0 0 auto;}
+.pill-big{display:flex;align-items:baseline;gap:.6vw;background:var(--card);border:1px solid var(--line);border-radius:1.2vh;padding:.8vh 1.4vw;}
+.pill-big b{font-family:'Barlow Condensed',sans-serif;font-size:4.4vh;font-weight:800;line-height:1;}
+.pill-big span{color:var(--muted);font-size:1.8vh;text-transform:uppercase;font-weight:700;letter-spacing:.5px;}
+.pill-big.ok b{color:#5fe08f;} .pill-big.pend b{color:var(--amarelo);}
+.bar-pct{flex:1;height:2.4vh;background:#0d1730;border-radius:2vh;overflow:hidden;border:1px solid var(--line);}
+.bar-pct div{height:100%;background:linear-gradient(90deg,var(--verde-esc),var(--verde));border-radius:2vh;transition:width .8s;}
+.legend{display:flex;gap:1vw;font-size:1.7vh;color:var(--muted);font-weight:700;text-transform:uppercase;}
+.legend i{display:inline-block;width:1.4vh;height:1.4vh;border-radius:.3vh;margin-right:.4vw;vertical-align:-.15vh;}
+.page-ind{color:var(--muted);font-size:1.8vh;font-weight:700;white-space:nowrap;}
+
+#opsGrid{flex:1;min-height:0;display:grid;gap:1.2vh;align-content:start;}
+.vc{--u:10px;background:#fff;color:#0d1424;border-radius:calc(var(--u)*1.1);overflow:hidden;display:flex;flex-direction:column;box-shadow:0 .6vh 2vh rgba(0,0,0,.35);border-left:calc(var(--u)*.9) solid var(--cinza);min-width:0;}
+.vc.mv-carga{border-left-color:var(--carga);} .vc.mv-descarga{border-left-color:var(--descarga);} .vc.mv-carga_descarga{border-left-color:var(--ambos);}
+.vc.urg{animation:pulse 1.2s infinite;}
+@keyframes pulse{50%{box-shadow:0 0 0 calc(var(--u)*.6) rgba(230,69,69,.55);}}
+.vc-top{display:flex;align-items:center;gap:calc(var(--u)*1.2);padding:calc(var(--u)*1) calc(var(--u)*1.2) calc(var(--u)*.6);}
+.vc-info{flex:1;min-width:0;}
+.vc-mov{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:calc(var(--u)*2.3);line-height:1;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mv-carga .vc-mov{color:var(--carga);} .mv-descarga .vc-mov{color:var(--descarga);} .mv-carga_descarga .vc-mov{color:var(--ambos);}
+.vc-op{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:calc(var(--u)*1.8);line-height:1.05;margin-top:calc(var(--u)*.3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#0d1424;}
+.vc-bot{margin-top:auto;display:flex;align-items:stretch;border-top:1px solid #e3e7ef;}
+.vc-resp{flex:1;min-width:0;padding:calc(var(--u)*.6) calc(var(--u)*1.2);background:#f3f5f9;}
+.vc-resp small{display:block;font-size:calc(var(--u)*1.05);color:#6b7488;font-weight:800;letter-spacing:.6px;text-transform:uppercase;}
+.vc-resp b{display:block;font-family:'Barlow Condensed',sans-serif;font-size:calc(var(--u)*2.2);font-weight:800;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.vc-resp b.none{color:#a0a7b6;font-weight:700;}
+.vc-resp .mot{font-size:calc(var(--u)*1.25);color:#5a6378;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.vc-st{flex:0 0 30%;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 calc(var(--u)*.6);font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:calc(var(--u)*1.45);color:#fff;text-transform:uppercase;line-height:1.05;overflow:hidden;word-break:break-word;}
+.st-aguard{background:#ff9800;} .st-urg{background:var(--vermelho);} .st-agentes{background:#2f86d6;} .st-nf{background:var(--cinza);} .st-parcial{background:#b98a00;}
+
+/* Placa Mercosul */
+.plate{flex:0 0 auto;width:calc(var(--u)*13);aspect-ratio:400/130;background:#fff;border:calc(var(--u)*.28) solid #111;border-radius:calc(var(--u)*.7);display:flex;flex-direction:column;overflow:hidden;}
+.pl-band{flex:0 0 26%;background:#0039a6;display:flex;align-items:center;justify-content:space-between;padding:0 6%;}
+.pl-band .br{color:#fff;font-family:Inter,Arial,sans-serif;font-weight:800;font-size:calc(var(--u)*.95);letter-spacing:.12em;}
+.pl-band .mk{width:calc(var(--u)*1.3);height:calc(var(--u)*1.3);border-radius:50%;border:1px solid rgba(255,255,255,.7);background:radial-gradient(circle,#fff 0 18%,transparent 22%);}
+.flag{width:calc(var(--u)*1.7);height:calc(var(--u)*1.2);background:#009b3a;position:relative;border-radius:1px;}
+.flag:before{content:'';position:absolute;inset:12% 10%;background:#fedf00;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);}
+.flag:after{content:'';position:absolute;left:50%;top:50%;width:38%;height:54%;transform:translate(-50%,-50%);background:#002776;border-radius:50%;}
+.pl-num{flex:1;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:700;font-size:calc(var(--u)*2.75);letter-spacing:.05em;white-space:nowrap;overflow:hidden;color:#111;line-height:1;padding-top:2%;}
+.plate.sm{width:calc(var(--u)*9.5);}
+.plate.sm .pl-num{font-size:calc(var(--u)*1.8);}
+.plate.sm .pl-band .br{font-size:calc(var(--u)*.6);}
+
+/* Concluídas (verde) agrupadas abaixo */
+#doneBox{flex:0 0 auto;max-height:30%;background:rgba(31,168,81,.10);border:2px solid rgba(31,168,81,.55);border-radius:1.2vh;padding:1vh 1.2vw;display:flex;flex-direction:column;gap:.8vh;min-height:0;overflow:hidden;}
+#doneBox h4{margin:0;color:#5fe08f;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:3vh;letter-spacing:.5px;text-transform:uppercase;}
+#doneList{display:flex;flex-wrap:wrap;gap:.8vh 1vw;overflow:hidden;--u:1.2vh;}
+.dc{display:flex;align-items:center;gap:.7vw;background:rgba(10,40,24,.65);border:1px solid rgba(95,224,143,.4);border-radius:1vh;padding:.5vh .8vw .5vh .5vw;}
+.dc .tx{line-height:1.05;}
+.dc .tx b{display:block;color:#5fe08f;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:2.6vh;text-transform:uppercase;white-space:nowrap;}
+.dc .tx span{display:block;color:#b9f0cd;font-size:1.6vh;font-weight:600;white-space:nowrap;}
+.empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:3vh;text-align:center;line-height:1.5;}
+
+/* =========================================================
+   TELAS GENÉRICAS
+   ========================================================= */
+.panel{background:var(--card);border:1px solid var(--line);border-radius:1.4vh;padding:1.6vh 1.4vw;display:flex;flex-direction:column;min-height:0;min-width:0;}
+.panel h3{margin:0 0 1.2vh;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:3.4vh;color:var(--amarelo);text-transform:uppercase;letter-spacing:.6px;display:flex;align-items:center;gap:.8vw;}
+.panel h3 .sub{color:var(--muted);font-family:Inter,sans-serif;font-size:1.7vh;font-weight:600;text-transform:none;letter-spacing:0;margin-left:auto;}
+.row{display:flex;gap:1.4vw;flex:1;min-height:0;}
+
+/* Resumo */
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr 1fr;gap:1.4vh;flex:1;min-height:0;}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:1.6vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:1vh;}
+.kpi .l{color:var(--muted);font-size:2.4vh;font-weight:800;text-transform:uppercase;letter-spacing:.6px;}
+.kpi .v{font-family:'Barlow Condensed',sans-serif;font-size:13vh;font-weight:800;line-height:1;margin-top:.6vh;}
+.kpi .s{color:var(--muted);font-size:1.9vh;margin-top:.4vh;}
+.kpi.blue .v{color:#58b0ff;} .kpi.green .v{color:#5fe08f;} .kpi.yellow .v{color:var(--amarelo);} .kpi.orange .v{color:#ff9c4a;} .kpi.purple .v{color:#b49cff;}
+.safety{flex:0 0 31%;display:flex;flex-direction:column;border-radius:1.6vh;overflow:hidden;}
+.safety .a{background:var(--verde-esc);padding:2.2vh 1vw;text-align:center;font-weight:800;font-size:2.8vh;line-height:1.25;}
+.safety .b{flex:1;background:var(--verde);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-weight:900;font-size:3.6vh;line-height:1.15;}
+.safety .b .n{font-family:'Barlow Condensed',sans-serif;font-size:22vh;line-height:.95;display:block;}
+.safety .c{background:var(--verde-esc);padding:1.8vh 1vw;text-align:center;font-weight:700;font-size:2.1vh;}
+
+/* Equipe */
+.team-kpi{display:flex;align-items:center;gap:1.4vw;margin-bottom:1.2vh;flex:0 0 auto;}
+.team-kpi .big{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:9vh;line-height:.9;color:#5fe08f;}
+.team-kpi .big small{font-size:4.4vh;color:var(--muted);}
+.team-kpi .lbl{font-size:2vh;color:var(--muted);font-weight:700;text-transform:uppercase;line-height:1.3;}
+.chips{display:flex;gap:.6vw;flex-wrap:wrap;margin-left:auto;justify-content:flex-end;}
+.chip{border-radius:2vh;padding:.5vh .9vw;font-weight:800;font-size:1.8vh;white-space:nowrap;}
+.c-pres{background:rgba(31,168,81,.2);color:#6ff0a0;} .c-aus{background:rgba(230,69,69,.22);color:#ff8f8f;} .c-abn{background:rgba(88,176,255,.18);color:#9ccfff;} .c-sem{background:rgba(148,163,192,.16);color:#b7c2d8;}
+.plist{flex:1;min-height:0;display:grid;grid-auto-flow:column;gap:.6vh 1.2vw;align-content:start;overflow:hidden;--fs:2.4vh;}
+.pp{display:flex;align-items:center;gap:.7vw;background:#0f1a33;border-radius:.9vh;padding:.45em .7em;font-size:var(--fs);min-width:0;}
+.pp .dot{flex:0 0 auto;width:.75em;height:.75em;border-radius:50%;}
+.pp .nm{flex:1;min-width:38%;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;}
+.pp .fn{color:var(--muted);font-size:.72em;font-weight:700;white-space:nowrap;}
+.pp .st{font-size:.72em;font-weight:800;white-space:nowrap;padding:.15em .55em;border-radius:1em;}
+.grp{grid-column:1/-1;}
+
+/* Barras (conferentes e paletes) */
+.bars{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:space-evenly;gap:.8vh;--fs:3vh;}
+.br-row{display:grid;grid-template-columns:24% 1fr 9%;align-items:center;gap:1vw;font-size:var(--fs);}
+.br-row .n{font-weight:800;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Barlow Condensed',sans-serif;font-size:1.25em;}
+.br-track{height:1.4em;background:#0d1730;border-radius:.4em;overflow:hidden;}
+.br-fill{height:100%;display:flex;}
+.br-fill div{height:100%;display:flex;align-items:center;justify-content:flex-end;padding-right:.4em;font-weight:800;font-size:.7em;color:#fff;min-width:0;overflow:hidden;white-space:nowrap;}
+.br-row .t{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.5em;color:var(--amarelo);text-align:right;}
+.leg{display:flex;gap:1.6vw;font-size:2vh;font-weight:700;color:var(--muted);text-transform:uppercase;}
+.leg i{display:inline-block;width:1.6vh;height:1.6vh;border-radius:.3vh;margin-right:.4vw;vertical-align:-.2vh;}
+
+.pal-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:1.4vw;flex:0 0 auto;}
+.pal-kpis .kpi .v{font-size:10vh;}
+.pal-chart{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:space-evenly;gap:2vh;}
+.pal-row{display:grid;grid-template-columns:20% 1fr;gap:1.2vw;align-items:center;}
+.pal-row .n{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:4vh;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;}
+.pal-bars{display:flex;flex-direction:column;gap:.8vh;}
+.pal-bar{display:flex;align-items:center;gap:1vw;}
+.pal-bar .trk{flex:1;height:4.6vh;background:#0d1730;border-radius:.8vh;overflow:hidden;}
+.pal-bar .trk div{height:100%;border-radius:.8vh;transition:width .8s;}
+.pal-bar b{font-family:'Barlow Condensed',sans-serif;font-size:4.4vh;font-weight:800;min-width:6vw;}
+.warn-src{color:#ffb4b4;font-size:1.7vh;margin-top:.4vh;}
+</style>
+</head>
+<body>
+<div id="app">
+  <a class="gear" href="config-v2.html" title="Configurações">⚙</a>
+
+  <div class="top">
+    <img src="logo-portoex.png" alt="PortoEx" onerror="this.style.display='none'"/>
+    <div class="ttl"><div class="t1" id="scrTitle">Operações do dia</div><div class="t2" id="scrSub">—</div></div>
+    <div class="dots" id="dots"></div>
+    <div class="clock"><div class="h" id="clkH">00:00</div><div class="d" id="clkD">—</div></div>
+  </div>
+
+  <div id="wrap">
+    <!-- OPERAÇÕES -->
+    <section class="screen" id="s-ops">
+      <div class="ops-head">
+        <div class="pill-big pend"><b id="opsPend">0</b><span>a fazer</span></div>
+        <div class="pill-big ok"><b id="opsDone">0</b><span>concluídas</span></div>
+        <div class="bar-pct"><div id="opsBar" style="width:0%"></div></div>
+        <div class="legend"><span><i style="background:var(--carga)"></i>Carga</span><span><i style="background:var(--descarga)"></i>Descarga</span><span><i style="background:var(--ambos)"></i>Carga + Descarga</span></div>
+        <div class="page-ind" id="opsPage"></div>
+      </div>
+      <div id="opsGrid"></div>
+      <div id="doneBox" style="display:none"><h4 id="doneTitle">✔ Concluídas</h4><div id="doneList"></div></div>
+    </section>
+
+    <!-- RESUMO + SEGURANÇA -->
+    <section class="screen" id="s-resumo">
+      <div class="row">
+        <div class="kpis">
+          <div class="kpi blue"><div class="l">Veículos no painel</div><div class="v" id="kVeic">0</div><div class="s">cadastrados para hoje</div></div>
+          <div class="kpi green"><div class="l">Concluídos</div><div class="v" id="kDone">0</div><div class="s" id="kDonePct">—</div></div>
+          <div class="kpi yellow"><div class="l">Faltam</div><div class="v" id="kPend">0</div><div class="s">aguardando conferência</div></div>
+          <div class="kpi orange"><div class="l">Conferências hoje</div><div class="v" id="kConf">0</div><div class="s" id="kConfSub">—</div></div>
+          <div class="kpi purple"><div class="l">Paletes movimentados</div><div class="v" id="kPal">0</div><div class="s" id="kPalSub">—</div></div>
+          <div class="kpi"><div class="l">Equipe presente</div><div class="v" id="kEq" style="color:#fff">0</div><div class="s" id="kEqSub">—</div></div>
+        </div>
+        <div class="safety">
+          <div class="a">O CUIDADO DE UM É A SEGURANÇA DE TODOS</div>
+          <div class="b">ESTAMOS HÁ<span class="n" id="safeDays">0</span>DIAS SEM ACIDENTES</div>
+          <div class="c">COLABORE PARA MELHORAR ESSE ÍNDICE</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EQUIPE DO DIA -->
+    <section class="screen" id="s-equipe">
+      <div class="row">
+        <div class="panel" style="flex:1">
+          <h3>👷 Equipe interna <span class="sub" id="eqIntSrc">ABSENTEÍSMO</span></h3>
+          <div class="team-kpi"><div class="big" id="eqIntBig">0<small>/0</small></div><div class="lbl">presentes<br>hoje</div><div class="chips" id="eqIntChips"></div></div>
+          <div class="plist" id="eqIntList"></div>
+        </div>
+        <div class="panel" style="flex:1">
+          <h3>🤝 Equipe terceirizada <span class="sub" id="eqExtSrc">MÃO DE OBRA</span></h3>
+          <div class="team-kpi"><div class="big" id="eqExtBig">0<small>/0</small></div><div class="lbl">presentes<br>hoje</div><div class="chips" id="eqExtChips"></div></div>
+          <div class="plist" id="eqExtList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- OPERAÇÕES POR CONFERENTE -->
+    <section class="screen" id="s-conf">
+      <div class="panel" style="flex:1">
+        <h3>📋 Conferências por conferente — hoje <span class="sub"><span class="leg"><span><i style="background:var(--descarga)"></i>Descarga (chegada)</span><span><i style="background:var(--carga)"></i>Carga (saída)</span></span></span></h3>
+        <div class="bars" id="confBars"></div>
+      </div>
+    </section>
+
+    <!-- PALETES DO DIA -->
+    <section class="screen" id="s-pal">
+      <div class="pal-kpis">
+        <div class="kpi orange"><div class="l">⬆ Saíram (enviados)</div><div class="v" id="pSai">0</div></div>
+        <div class="kpi blue"><div class="l">⬇ Chegaram (recebidos)</div><div class="v" id="pEnt">0</div></div>
+        <div class="kpi"><div class="l">Saldo do dia</div><div class="v" id="pSaldo">0</div><div class="s">chegaram − saíram</div></div>
+      </div>
+      <div class="panel" style="flex:1">
+        <h3>📦 Totais por tipo de palete — hoje <span class="sub">sem transferência SC × SP</span></h3>
+        <div class="pal-chart" id="palChart"></div>
+      </div>
+    </section>
+
+    <div class="progress" id="prog"></div>
+  </div>
+
+  <div class="ticker"><div class="live"><b></b>AO VIVO</div><div class="tk-box"><div class="tk-track" id="tk"></div></div></div>
+</div>
+
+<script>
+/* =====================================================================
+   DASCH v2 — EXIBIÇÃO NA TV (somente leitura)
+   Fontes:
+   • dasch_config/painel (Firestore conferenciaptx) — letreiro, segurança,
+     telas (campo v2) e operações do dia cadastradas no config-v2 (opsV2)
+   • operacoes (Firestore conferenciaptx) — conferências finalizadas hoje.
+     A operação de um veículo é marcada CONCLUÍDA sozinha quando o
+     conferente finaliza: Carga = SAÍDA · Descarga = ENTRADA.
+   • ABSENTEISMO (RTDB absenteismo-fc544/frequencia) — equipe interna
+   • CONTROLE-MAO-DE-OBRA (RTDB vagas-terceirizados-portoex/acompanhamento)
+   Modo demonstração: abrir com ?demo=1
+===================================================================== */
+const DEMO = new URLSearchParams(location.search).get('demo') === '1';
+const LS_KEY = 'dasch_config_v1';
+const SCREENS = [
+  {k:'ops',    el:'s-ops',    t:'Operações do dia',            s:'Veículos programados · quem é o responsável'},
+  {k:'resumo', el:'s-resumo', t:'Resumo da expedição',          s:'Números do dia'},
+  {k:'equipe', el:'s-equipe', t:'Equipe do dia',                s:'Interna e terceirizada'},
+  {k:'conf',   el:'s-conf',   t:'Conferências por conferente',  s:'Quantidade de operações finalizadas hoje'},
+  {k:'pal',    el:'s-pal',    t:'Paletes do dia',               s:'Entradas e saídas de paletes'}
+];
+const V2_DEF = {
+  dur:{ops:30,resumo:12,equipe:15,conf:12,pal:12},
+  zoom:{ops:100,resumo:100,equipe:100,conf:100,pal:100},
+  on:{ops:true,resumo:true,equipe:true,conf:true,pal:true},
+  intercalar:true, porPagina:0
+};
+function defCfg(){ return {
+  ticker:'Bem-vindo à PortoEx! Trabalhe com segurança todos os dias.',
+  safetyDate:new Date().toISOString().slice(0,10),
+  sys1Email:'andre.luis@portoex.com.br', sys1Pass:'andre185166',
+  v2:JSON.parse(JSON.stringify(V2_DEF)), opsV2:{dia:'',lista:[]}
+};}
+function mergeCfg(d){
+  const c = Object.assign(defCfg(), d||{});
+  const v = (d&&d.v2)||{};
+  c.v2 = { dur:Object.assign({},V2_DEF.dur,v.dur), zoom:Object.assign({},V2_DEF.zoom,v.zoom), on:Object.assign({},V2_DEF.on,v.on),
+           intercalar: v.intercalar!==undefined ? !!v.intercalar : V2_DEF.intercalar, porPagina:+v.porPagina||0 };
+  if(!c.opsV2 || typeof c.opsV2!=='object') c.opsV2 = {dia:'',lista:[]};
+  return c;
+}
+let CFG = defCfg();
+try{ const raw = localStorage.getItem(LS_KEY); if(raw) CFG = mergeCfg(JSON.parse(raw)); }catch(e){}
+
+/* ---------------- utilidades ---------------- */
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,'0');
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s==null?'':s).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().trim();
+const plateKey = s => String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+const fmtPlate = s => plateKey(s);
+const hojeBR = () => { const d=new Date(); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear(); };
+const hojeISO = () => { const d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); };
+const tsMs = t => t && t.toMillis ? t.toMillis() : (t && t.seconds ? t.seconds*1000 : (typeof t==='number'?t:0));
+const hhmm = ms => { if(!ms) return ''; const d=new Date(ms); return pad(d.getHours())+':'+pad(d.getMinutes()); };
+const fmt = n => (Number(n)||0).toLocaleString('pt-BR');
+const shortName = s => { const p=String(s||'').trim().split(/\s+/); return p.length>2 ? p[0]+' '+p[p.length-1] : p.join(' '); };
+const MOV_LBL = {carga:'Carga', descarga:'Descarga', carga_descarga:'Carga + Descarga'};
+
+/* ---------------- estado dos dados ---------------- */
+const D = { confOps:[], confOk:null, abs:{colab:null,mes:null,codes:null,ok:null}, ext:{list:null,ok:null} };
+
+/* =====================================================================
+   OPERAÇÕES — cálculo de status automático
+===================================================================== */
+function confByPlate(){
+  const m = {};
+  D.confOps.forEach(o=>{
+    const k = plateKey(o.placa); if(!k) return;
+    const x = m[k] = m[k] || {saida:[], entrada:[]};
+    (o.tipoExecucao==='SAIDA' ? x.saida : x.entrada).push(o);
+  });
+  Object.values(m).forEach(x=>{ x.saida.sort((a,b)=>tsMs(a.timestamp)-tsMs(b.timestamp)); x.entrada.sort((a,b)=>tsMs(a.timestamp)-tsMs(b.timestamp)); });
+  return m;
+}
+function opsDoDia(){
+  const o = CFG.opsV2||{};
+  return o.dia === hojeBR() ? (o.lista||[]) : [];
+}
+function avaliar(op, idx){
+  const c = idx[plateKey(op.placa)] || {saida:[],entrada:[]};
+  const mov = op.mov || 'carga';
+  const temC = c.saida.length>0, temD = c.entrada.length>0;
+  const man = norm(op.status);
+  let done = false, parcial = '';
+  if(man.startsWith('CONCLU')) done = true;
+  else if(mov==='carga') done = temC;
+  else if(mov==='descarga') done = temD;
+  else { done = temC && temD; if(!done && temD) parcial='Falta carga'; else if(!done && temC) parcial='Falta descarga'; }
+  const docs = [...c.saida, ...c.entrada].sort((a,b)=>tsMs(a.timestamp)-tsMs(b.timestamp));
+  const last = docs[docs.length-1];
+  const resp = op.conferente || (last && last.conferenteNome) || '';
+  let st = 'A FAZER', cls = 'st-aguard';
+  if(man.includes('URGEN')){ st='URGÊNCIA'; cls='st-urg'; }
+  else if(man.includes('AGENTE')){ st='AGENTES'; cls='st-agentes'; }
+  else if(man.includes('NAO FOI')){ st='NÃO FOI FEITO'; cls='st-nf'; }
+  else if(parcial){ st=parcial; cls='st-parcial'; }
+  return { op, mov, done, st, cls, resp, hora: last ? hhmm(tsMs(last.timestamp)) : '', urg: man.includes('URGEN') };
+}
+function plateHTML(p, sm){
+  return `<div class="plate${sm?' sm':''}"><div class="pl-band"><span class="mk"></span><span class="br">BRASIL</span><span class="flag"></span></div><div class="pl-num">${esc(fmtPlate(p))}</div></div>`;
+}
+
+let opsPages = [[]], opsPageIdx = 0, opsPageTimer = null;
+function renderOps(){
+  const idx = confByPlate();
+  const lista = opsDoDia().filter(o=>o && o.placa);
+  const av = lista.map(o=>avaliar(o, idx));
+  // veículos conferidos hoje que não foram cadastrados entram direto nas concluídas
+  const cad = new Set(lista.map(o=>plateKey(o.placa)));
+  Object.entries(idx).forEach(([k,c])=>{
+    if(cad.has(k)) return;
+    const docs=[...c.saida,...c.entrada].sort((a,b)=>tsMs(a.timestamp)-tsMs(b.timestamp)), last=docs[docs.length-1];
+    const mov = c.saida.length && c.entrada.length ? 'carga_descarga' : (c.saida.length?'carga':'descarga');
+    av.push({ op:{placa:k, operacao:(last&&last.cliente)||'', motorista:(last&&last.motorista)||''}, mov, done:true, resp:(last&&last.conferenteNome)||'', hora:hhmm(tsMs(last&&last.timestamp)), extra:true });
+  });
+  const byPlate = (a,b)=>plateKey(a.op.placa).localeCompare(plateKey(b.op.placa));
+  const pend = av.filter(a=>!a.done).sort((a,b)=> (b.urg-a.urg) || byPlate(a,b));
+  const done = av.filter(a=>a.done).sort(byPlate);
+
+  $('opsPend').textContent = pend.length;
+  $('opsDone').textContent = done.length;
+  const tot = pend.length + done.length;
+  $('opsBar').style.width = (tot ? Math.round(done.length/tot*100) : 0) + '%';
+
+  // concluídas
+  const box = $('doneBox');
+  if(done.length){
+    box.style.display = 'flex';
+    $('doneTitle').textContent = `✔ Concluídas (${done.length})`;
+    $('doneList').innerHTML = done.map(a=>`<div class="dc">${plateHTML(a.op.placa,true)}<div class="tx"><b>${esc(MOV_LBL[a.mov]||'')} ✔</b><span>${esc(shortName(a.resp)||'—')}${a.hora?' · '+a.hora:''}</span></div></div>`).join('');
+    trimDone();
+  } else box.style.display = 'none';
+
+  // páginas dos pendentes
+  const grid = $('opsGrid');
+  if(!pend.length){
+    opsPages = [[]];
+    grid.style.display='flex';
+    grid.innerHTML = `<div class="empty">${lista.length ? '🎉 Todas as operações cadastradas foram concluídas!' : 'Nenhuma operação cadastrada para hoje.<br><small style="font-size:.7em">Cadastre os veículos em config-v2.html</small>'}</div>`;
+    $('opsPage').textContent='';
+    return;
+  }
+  grid.style.display='grid';
+  layoutOps(pend);
+}
+function trimDone(){
+  // mantém o bloco em verde com no máximo 30% da altura; o excesso vira "+N"
+  requestAnimationFrame(()=>{
+    const list = $('doneList'); const items=[...list.children]; if(!items.length) return;
+    const maxB = list.getBoundingClientRect().top + list.clientHeight + 1;
+    let hidden=0;
+    items.forEach(it=>{ if(it.getBoundingClientRect().bottom > maxB+2){ it.style.display='none'; hidden++; } });
+    if(hidden){ const t=$('doneTitle'); t.textContent += ` · +${hidden} na lista`; }
+  });
+}
+function layoutOps(pend){
+  const grid = $('opsGrid');
+  requestAnimationFrame(()=>{
+    const W = grid.clientWidth, H = grid.clientHeight, gap = parseFloat(getComputedStyle(grid).rowGap)||10;
+    const MIN_H = Math.max(120, H*0.2);
+    // procura colunas/linhas que deixem o card maior possível (proporção ~ 2.35:1)
+    const tryFit = n => { let best=null;
+      for(let cols=1; cols<=6; cols++){
+        const rows=Math.ceil(n/cols); const cw=(W-gap*(cols-1))/cols; const chMax=(H-gap*(rows-1))/rows;
+        const ch=Math.min(chMax, cw/2.35); if(!best || ch>best.ch) best={cols,rows,ch,cw};
+      } return best; };
+    let per = CFG.v2.porPagina>0 ? CFG.v2.porPagina : pend.length;
+    let f = tryFit(Math.min(per,pend.length));
+    while(f.ch < MIN_H && per > 1){ per--; f = tryFit(per); }
+    opsPages = []; for(let i=0;i<pend.length;i+=per) opsPages.push(pend.slice(i,i+per));
+    if(opsPageIdx >= opsPages.length) opsPageIdx = 0;
+    grid.style.gridTemplateColumns = `repeat(${f.cols}, 1fr)`;
+    grid.style.gridAutoRows = f.ch+'px';
+    grid.style.setProperty('--card-u', (f.ch/10.5)+'px');
+    grid.dataset.u = (Math.min(f.ch/11.6, f.cw/31)).toFixed(2);
+    drawOpsPage();
+  });
+}
+function drawOpsPage(){
+  const grid = $('opsGrid'); const u = grid.dataset.u || 10;
+  const page = opsPages[opsPageIdx] || [];
+  grid.innerHTML = page.map(a=>`
+    <div class="vc mv-${a.mov}${a.urg?' urg':''}" style="--u:${u}px">
+      <div class="vc-top">${plateHTML(a.op.placa)}
+        <div class="vc-info"><div class="vc-mov">${esc(MOV_LBL[a.mov]||'')}</div><div class="vc-op">${esc(a.op.operacao||'—')}</div></div>
+      </div>
+      <div class="vc-bot">
+        <div class="vc-resp"><small>Responsável</small><b class="${a.resp?'':'none'}">${esc(shortName(a.resp)||'a definir')}</b>${a.op.motorista?`<div class="mot">🚚 ${esc(a.op.motorista)}</div>`:''}</div>
+        <div class="vc-st ${a.cls}">${esc(a.st)}</div>
+      </div>
+    </div>`).join('');
+  $('opsPage').textContent = opsPages.length>1 ? `Página ${opsPageIdx+1}/${opsPages.length}` : '';
+}
+
+/* =====================================================================
+   RESUMO
+===================================================================== */
+function renderResumo(){
+  const idx = confByPlate();
+  const av = opsDoDia().filter(o=>o&&o.placa).map(o=>avaliar(o,idx));
+  const done = av.filter(a=>a.done).length;
+  $('kVeic').textContent = av.length;
+  $('kDone').textContent = done;
+  $('kDonePct').textContent = av.length ? Math.round(done/av.length*100)+'% do dia' : '—';
+  $('kPend').textContent = av.length - done;
+  const ent = D.confOps.filter(o=>o.tipoExecucao!=='SAIDA').length, sai = D.confOps.length - ent;
+  $('kConf').textContent = D.confOps.length;
+  $('kConfSub').textContent = `${ent} descargas · ${sai} cargas`;
+  const p = palTotais();
+  $('kPal').textContent = fmt(p.tot.s + p.tot.e);
+  $('kPalSub').textContent = `${fmt(p.tot.s)} saíram · ${fmt(p.tot.e)} chegaram`;
+  const ei = equipeInterna(), ee = equipeExterna();
+  const pres = (ei?ei.pres:0) + (ee?ee.pres:0), tot = (ei?ei.total:0) + (ee?ee.total:0);
+  $('kEq').textContent = pres;
+  $('kEqSub').textContent = tot ? `de ${tot} (interna + terceirizada)` : 'sem lançamento';
+  applySafety();
+}
+function applySafety(){
+  const start = new Date((CFG.safetyDate||hojeISO())+'T00:00:00');
+  $('safeDays').textContent = Math.max(0, Math.floor((Date.now()-start)/86400000));
+}
+
+/* =====================================================================
+   EQUIPE — interna (ABSENTEISMO) e terceirizada (Mão de obra)
+   Por privacidade a TV mostra só a situação (Presente / Ausente /
+   Férias…), nunca o motivo ou observação da ausência.
+===================================================================== */
+const DEF_CODES = [{c:'P',n:'Presente',cat:'trabalho'},{c:'FA',n:'Falta',cat:'ausencia'},{c:'AT',n:'Atestado',cat:'ausencia'},{c:'FE',n:'Férias',cat:'abonado'},{c:'FO',n:'Folga',cat:'abonado'},{c:'H',n:'Home office',cat:'trabalho'},{c:'LT',n:'Luto',cat:'ausencia'},{c:'AP',n:'Aviso prévio',cat:'trabalho'},{c:'AF',n:'Afastamento',cat:'abonado'},{c:'DV',n:'Demissão voluntária',cat:'desligamento'},{c:'D',n:'Demitido',cat:'desligamento'}];
+const FN_ORDER = ['LÍDER','ANALISTA','CONFERENTE','AJUDANTE'];
+const arr = v => Array.isArray(v) ? v : (v && typeof v==='object' ? Object.values(v) : []);
+function equipeInterna(){
+  const A = D.abs; if(!A.colab) return null;
+  const codes = (arr(A.codes).filter(x=>x&&x.c).length ? arr(A.codes) : DEF_CODES);
+  const CM = Object.fromEntries(codes.map(x=>[x.c,x]));
+  const t = hojeISO(), ym = t.slice(0,7), dd = t.slice(8,10);
+  const mes = (A.mes||{});
+  const out = [];
+  Object.entries(A.colab).forEach(([id,c])=>{
+    if(!c) return;
+    const fns = arr(c.funcoes).slice().sort((a,b)=>a.inicio<b.inicio?-1:1);
+    const ini = c.admissao || (fns[0]||{}).inicio || '0000-00-00';
+    if(ini > t || (c.desligamento && t >= c.desligamento)) return;
+    let fn = fns[0]?fns[0].funcao:'—'; fns.forEach(f=>{ if(f.inicio<=t) fn=f.funcao; });
+    const r = mes[id] && mes[id][dd]; const code = r && r.c ? r.c : '';
+    const k = CM[code];
+    let cat = 'sem', lbl = 'Pendente';
+    if(k){ if(k.cat==='trabalho'){ cat='pres'; lbl = code==='H' ? 'Home office' : 'Presente'; }
+           else if(k.cat==='ausencia'){ cat='aus'; lbl='Ausente'; }
+           else if(k.cat==='abonado'){ cat='abn'; lbl=k.n; }
+           else return; }
+    out.push({nome:c.nome, fn, cat, lbl});
+  });
+  const fo = f => { const i=FN_ORDER.indexOf(f); return i<0?99:i; };
+  out.sort((a,b)=> fo(a.fn)-fo(b.fn) || a.nome.localeCompare(b.nome,'pt'));
+  const cnt = {pres:0,aus:0,abn:0,sem:0}; out.forEach(p=>cnt[p.cat]++);
+  return {list:out, pres:cnt.pres, total:out.length, cnt};
+}
+function equipeExterna(){
+  const L = D.ext.list; if(!L) return null;
+  const t = hojeISO();
+  const out = Object.values(L).filter(a=>a && a.data===t).map(a=>{
+    const s = norm(a.status);
+    let cat='sem', lbl=a.status||'Em escolha';
+    if(s==='PRESENTE'){ cat='pres'; lbl='Presente'; }
+    else if(s==='AUSENTE'){ cat='aus'; lbl='Ausente'; }
+    else if(s==='ENCERRADO'){ cat='abn'; lbl='Encerrado'; }
+    else if(s==='VALIDADA'){ cat='sem'; lbl='Aguardando'; }
+    return {nome:a.colNome||'—', fn:a.opNome||a.funcao||'', emp:a.empresaNome||'', cat, lbl, ent:a.chegada||''};
+  });
+  const ord = {pres:0,sem:1,abn:2,aus:3};
+  out.sort((a,b)=> (a.fn||'').localeCompare(b.fn||'','pt') || ord[a.cat]-ord[b.cat] || a.nome.localeCompare(b.nome,'pt'));
+  const cnt = {pres:0,aus:0,abn:0,sem:0}; out.forEach(p=>cnt[p.cat]++);
+  // "Encerrado" também esteve presente no dia
+  return {list:out, pres:cnt.pres+cnt.abn, total:out.length, cnt};
+}
+const CAT_COL = {pres:'#3ddc84', aus:'#ff6b6b', abn:'#58b0ff', sem:'#8592ad'};
+const CAT_CLS = {pres:'c-pres', aus:'c-aus', abn:'c-abn', sem:'c-sem'};
+function renderTeamBox(prefix, data, extInfo){
+  const big = $(prefix+'Big'), chips = $(prefix+'Chips'), list = $(prefix+'List');
+  if(!data){ big.innerHTML='—'; chips.innerHTML=''; list.innerHTML='<div class="empty" style="grid-column:1/-1">Carregando…</div>'; return; }
+  big.innerHTML = `${data.pres}<small>/${data.total}</small>`;
+  const c = data.cnt;
+  const lbls = extInfo ? {pres:['presente','presentes'],sem:['aguardando','aguardando'],abn:['encerrado','encerrados'],aus:['ausente','ausentes']} : {pres:['presente','presentes'],aus:['ausente','ausentes'],abn:['férias/folga','férias/folga'],sem:['sem lançamento','sem lançamento']};
+  chips.innerHTML = Object.keys(lbls).filter(k=>c[k]).map(k=>`<span class="chip ${CAT_CLS[k]}">${c[k]} ${lbls[k][c[k]===1?0:1]}</span>`).join('');
+  if(!data.list.length){ list.innerHTML = `<div class="empty" style="grid-column:1/-1">${extInfo?'Nenhum terceirizado lançado para hoje.':'Ninguém ativo hoje.'}</div>`; return; }
+  list.innerHTML = data.list.map(p=>`<div class="pp"><span class="dot" style="background:${CAT_COL[p.cat]}"></span><span class="nm">${esc(shortName(p.nome))}</span><span class="fn">${esc(extInfo ? (p.fn||'') : p.fn)}</span>${p.cat!=='pres'?`<span class="st ${CAT_CLS[p.cat]}">${esc(p.lbl)}</span>`:(p.ent?`<span class="fn">${esc(p.ent)}</span>`:'')}</div>`).join('');
+  fitList(list, data.list.length);
+}
+function fitList(list, n){
+  requestAnimationFrame(()=>{
+    const H = list.clientHeight, W = list.clientWidth; if(!H||!W) return;
+    let best = {fs:12, cols:1};
+    for(let cols=1; cols<=3; cols++){
+      const rows = Math.ceil(n/cols);
+      const fsH = (H - (rows-1)*8) / rows / 2.3;
+      const fsW = (W/cols) / 21;
+      const fs = Math.min(fsH, fsW, 38);
+      if(fs > best.fs) best = {fs, cols};
+    }
+    list.style.gridTemplateRows = `repeat(${Math.ceil(n/best.cols)}, auto)`;
+    list.style.setProperty('--fs', best.fs.toFixed(1)+'px');
+  });
+}
+function renderEquipe(){
+  renderTeamBox('eqInt', equipeInterna(), false);
+  renderTeamBox('eqExt', equipeExterna(), true);
+  $('eqIntSrc').textContent = D.abs.ok===false ? '⚠ sem conexão com ABSENTEÍSMO' : 'ABSENTEÍSMO';
+  $('eqExtSrc').textContent = D.ext.ok===false ? '⚠ sem conexão com MÃO DE OBRA' : 'MÃO DE OBRA';
+}
+
+/* =====================================================================
+   CONFERENTES
+===================================================================== */
+function renderConf(){
+  const m = {};
+  D.confOps.forEach(o=>{ const n = o.conferenteNome || 'Não identificado'; const x = m[n] = m[n]||{e:0,s:0}; if(o.tipoExecucao==='SAIDA') x.s++; else x.e++; });
+  const rows = Object.entries(m).map(([n,x])=>({n, e:x.e, s:x.s, t:x.e+x.s})).sort((a,b)=>b.t-a.t || a.n.localeCompare(b.n));
+  const box = $('confBars');
+  if(!rows.length){ box.innerHTML = `<div class="empty">${D.confOk===false?'⚠ Sem conexão com o Sistema de Conferência':'Nenhuma conferência finalizada hoje ainda.'}</div>`; return; }
+  const max = rows[0].t;
+  const fs = Math.max(14, Math.min(44, (box.clientHeight||600) / rows.length / 2.1));
+  box.style.setProperty('--fs', fs+'px');
+  box.innerHTML = rows.map(r=>`<div class="br-row"><div class="n">${esc(shortName(r.n))}</div>
+    <div class="br-track"><div class="br-fill" style="width:${(r.t/max*100).toFixed(1)}%">${r.e?`<div style="flex:${r.e};background:var(--descarga)">${r.e}</div>`:''}${r.s?`<div style="flex:${r.s};background:var(--carga)">${r.s}</div>`:''}</div></div>
+    <div class="t">${r.t}</div></div>`).join('');
+}
+
+/* =====================================================================
+   PALETES — mesma regra do "Totais por tipo de palete" do Painel_Terceiros,
+   só que para o dia atual: SAÍDA = enviados · ENTRADA = recebidos,
+   transferências SC × SP ficam de fora.
+===================================================================== */
+function tipoKey(p){ return p.tipo==='PBR' ? 'PBR' : p.tipo==='DESCARTAVEL' ? 'DESCARTAVEL' : 'OUTROS'; }
+function palTotais(){
+  const t = {PBR:{e:0,s:0}, DESCARTAVEL:{e:0,s:0}, OUTROS:{e:0,s:0}}, tot = {e:0,s:0};
+  D.confOps.filter(o=>!o.transferencia).forEach(o=>{
+    const d = o.tipoExecucao==='SAIDA' ? 's' : 'e';
+    (Array.isArray(o.paletes)?o.paletes:[]).filter(Boolean).forEach(p=>{ const q=parseInt(p.quantidade,10)||0; t[tipoKey(p)][d]+=q; tot[d]+=q; });
+  });
+  return {t, tot};
+}
+function renderPal(){
+  const {t, tot} = palTotais();
+  $('pSai').textContent = fmt(tot.s); $('pEnt').textContent = fmt(tot.e);
+  const sd = tot.e - tot.s; const el = $('pSaldo'); el.textContent = (sd>0?'+':'')+fmt(sd); el.style.color = sd<0 ? '#ff6b6b' : '#5fe08f';
+  const max = Math.max(1, ...Object.values(t).flatMap(x=>[x.e,x.s]));
+  const L = [['PBR','PBR'],['DESCARTAVEL','Descartável'],['OUTROS','Outros']];
+  $('palChart').innerHTML = (!tot.e && !tot.s) ? `<div class="empty">${D.confOk===false?'⚠ Sem conexão com o Sistema de Conferência':'Nenhum palete lançado hoje ainda.'}</div>` :
+    L.map(([k,n])=>`<div class="pal-row"><div class="n">${n}</div><div class="pal-bars">
+      <div class="pal-bar"><div class="trk"><div style="width:${(t[k].s/max*100).toFixed(1)}%;background:#ff8a3d"></div></div><b style="color:#ff9c4a">⬆ ${fmt(t[k].s)}</b></div>
+      <div class="pal-bar"><div class="trk"><div style="width:${(t[k].e/max*100).toFixed(1)}%;background:#3a9bff"></div></div><b style="color:#58b0ff">⬇ ${fmt(t[k].e)}</b></div>
+    </div></div>`).join('');
+}
+
+/* =====================================================================
+   ROTAÇÃO DAS TELAS
+===================================================================== */
+let seq = [], seqPos = -1, rotT = null, progT = null;
+function buildSeq(){
+  const v = CFG.v2; const others = SCREENS.filter(s=>s.k!=='ops' && v.on[s.k]).map(s=>s.k);
+  const opsOn = v.on.ops !== false;
+  let out = [];
+  if(!opsOn) out = others;
+  else if(v.intercalar && others.length){ others.forEach(k=>{ out.push('ops', k); }); }
+  else out = ['ops', ...others];
+  return out.length ? out : ['ops'];
+}
+function renderDots(cur){
+  $('dots').innerHTML = seq.map((k,i)=>`<i class="${i===cur?'on':''}"></i>`).join('');
+}
+function show(k){
+  SCREENS.forEach(s=>{ const el=$(s.el); el.classList.toggle('on', s.k===k); el.style.zoom = (CFG.v2.zoom[s.k]||100)+'%'; });
+  const S = SCREENS.find(s=>s.k===k);
+  $('scrTitle').textContent = S.t; $('scrSub').textContent = S.s;
+  renderScreen(k);
+  const dur = Math.max(5, +CFG.v2.dur[k] || 12) * 1000;
+  const p = $('prog'); p.style.transition='none'; p.style.width='0'; void p.offsetWidth; p.style.transition=`width ${dur}ms linear`; p.style.width='100%';
+  clearInterval(opsPageTimer);
+  if(k==='ops'){
+    opsPageIdx = 0;
+    // várias páginas: divide o tempo da tela entre elas (mín. 10 s cada)
+    setTimeout(()=>{ if(opsPages.length>1){ const each=Math.max(10000, dur/opsPages.length); opsPageTimer=setInterval(()=>{ opsPageIdx=(opsPageIdx+1)%opsPages.length; drawOpsPage(); }, each); } }, 300);
+  }
+  rotT = setTimeout(next, dur);
+}
+function next(){
+  clearTimeout(rotT);
+  seq = buildSeq();
+  seqPos = (seqPos+1) % seq.length;
+  renderDots(seqPos);
+  show(seq[seqPos]);
+}
+function current(){ return seq[seqPos]; }
+function renderScreen(k){
+  try{
+    if(k==='ops') renderOps(); else if(k==='resumo') renderResumo(); else if(k==='equipe') renderEquipe();
+    else if(k==='conf') renderConf(); else if(k==='pal') renderPal();
+  }catch(e){ console.error('render', k, e); }
+}
+let rT = null;
+function refresh(){ clearTimeout(rT); rT = setTimeout(()=>{ applyTicker(); if(current()) renderScreen(current()); }, 200); }
+window.addEventListener('resize', refresh);
+
+/* ---------------- relógio, letreiro ---------------- */
+function tick(){
+  const n = new Date();
+  $('clkH').textContent = pad(n.getHours())+':'+pad(n.getMinutes());
+  $('clkD').textContent = n.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
+}
+let lastTicker = null;
+function applyTicker(){
+  if(lastTicker === CFG.ticker) return; lastTicker = CFG.ticker;
+  const t = $('tk'); t.textContent = CFG.ticker || '';
+  t.style.animationDuration = Math.max(16, (CFG.ticker||'').length*0.3) + 's';
+}
+
+/* =====================================================================
+   FIREBASE
+===================================================================== */
+const SYS1 = { apiKey:"AIzaSyBp_ZfFiz1qWr4Gb4bc5h5mI1kHnjPwyCA", authDomain:"conferenciaptx.firebaseapp.com", projectId:"conferenciaptx",
+  storageBucket:"conferenciaptx.firebasestorage.app", messagingSenderId:"78686885828", appId:"1:78686885828:web:0d70d13e2abaf35ee23691" };
+const ABS_FB = { apiKey:"AIzaSyDtCcj5tjXogtn97M6yKeasEpkT6Uc3bHo", authDomain:"absenteismo-fc544.firebaseapp.com", databaseURL:"https://absenteismo-fc544-default-rtdb.firebaseio.com", projectId:"absenteismo-fc544" };
+const MO_FB = { apiKey:"AIzaSyDsKKZaK1WBo3FjNo-2o0O5a0ehV4tDy4U", authDomain:"vagas-terceirizados-portoex.firebaseapp.com", databaseURL:"https://vagas-terceirizados-portoex-default-rtdb.firebaseio.com", projectId:"vagas-terceirizados-portoex" };
+
+let fs1=null, auth1=null, authedAs=null, opsUnsub=null, opsDia='', extRef=null, extDia='';
+function initFirebase(){
+  if(typeof firebase==='undefined'){ console.error('SDK Firebase não carregou'); D.confOk=false; D.abs.ok=false; D.ext.ok=false; refresh(); return; }
+  try{
+    const a1 = firebase.initializeApp(SYS1,'sys1'); auth1=a1.auth(); fs1=a1.firestore();
+    login();
+  }catch(e){ console.error(e); }
+  try{
+    const db = firebase.initializeApp(ABS_FB,'abs').database();
+    const on = (p,cb)=>db.ref('frequencia/'+p).on('value', s=>{ cb(s.val()); D.abs.ok=true; refresh(); }, e=>{ console.warn('abs',e); D.abs.ok=false; refresh(); });
+    on('colab', v=>D.abs.colab=v||{});
+    on('config/codigos', v=>D.abs.codes=v);
+    subscribeAbsMes(db);
+  }catch(e){ console.error(e); D.abs.ok=false; }
+  try{
+    const db = firebase.initializeApp(MO_FB,'mo').database();
+    window.__moDb = db; subscribeExt();
+  }catch(e){ console.error(e); D.ext.ok=false; }
+  setInterval(()=>{ subscribeOps(); subscribeExt(); if(window.__absDb) subscribeAbsMes(window.__absDb); }, 60000);
+}
+let absMesRef=null, absYm='';
+function subscribeAbsMes(db){
+  window.__absDb = db; const ym = hojeISO().slice(0,7);
+  if(absYm===ym) return; if(absMesRef) absMesRef.off(); absYm=ym;
+  absMesRef = db.ref('frequencia/mes/'+ym);
+  absMesRef.on('value', s=>{ const v=s.val()||{}; D.abs.mes=v; D.abs.ok=true; refresh(); }, e=>{ console.warn(e); D.abs.ok=false; refresh(); });
+}
+function subscribeExt(){
+  const db = window.__moDb; if(!db) return; const t = hojeISO();
+  if(extDia===t) return; if(extRef) extRef.off(); extDia=t;
+  extRef = db.ref('acompanhamento').orderByChild('data').equalTo(t);
+  extRef.on('value', s=>{ D.ext.list = s.val()||{}; D.ext.ok=true; refresh(); }, e=>{ console.warn('mo',e); D.ext.ok=false; refresh(); });
+}
+function login(){
+  auth1.signInWithEmailAndPassword(CFG.sys1Email, CFG.sys1Pass).then(()=>{
+    authedAs = CFG.sys1Email;
+    fs1.collection('dasch_config').doc('painel').onSnapshot(doc=>{
+      if(!doc.exists) return;
+      CFG = mergeCfg(doc.data());
+      try{ localStorage.setItem(LS_KEY, JSON.stringify(CFG)); }catch(e){}
+      refresh();
+      if(CFG.sys1Email && CFG.sys1Email!==authedAs) login();
+    }, e=>console.warn('config', e.message));
+    opsDia=''; subscribeOps();
+  }).catch(e=>{ console.error('login conferência', e.message); D.confOk=false; refresh(); });
+}
+function subscribeOps(){
+  if(!fs1 || !authedAs) return; const t = hojeBR();
+  if(opsDia===t) return; if(opsUnsub) opsUnsub(); opsDia=t;
+  opsUnsub = fs1.collection('operacoes').where('dataRef','==',t).onSnapshot(s=>{
+    D.confOps = s.docs.map(d=>Object.assign({id:d.id}, d.data())); D.confOk=true; refresh();
+  }, e=>{ console.warn('operacoes', e.message); D.confOk=false; refresh(); });
+}
+
+/* =====================================================================
+   MODO DEMONSTRAÇÃO (?demo=1) — dados fictícios para testar o visual
+===================================================================== */
+function demo(){
+  const now = Date.now(), m = x => ({seconds: Math.floor((now - x*60000)/1000)});
+  const lista = [
+    {placa:'RXA4F21',motorista:'CARLOS SILVA',mov:'carga',operacao:'ENTREGA MATTEL',conferente:'JOAO ARAUJO COSTA',status:''},
+    {placa:'QJT8B55',motorista:'MARCOS LIMA',mov:'descarga',operacao:'COLETA BRAFT',conferente:'',status:''},
+    {placa:'MLK2J09',motorista:'PEDRO ALVES',mov:'carga_descarga',operacao:'TRANSFERÊNCIA SP',conferente:'ABNER FERNANDO DOS SANTOS',status:''},
+    {placa:'BCD1E23',motorista:'RAFAEL SOUZA',mov:'carga',operacao:'EMBARQUE CAMELON',conferente:'GUILHERME PEREIRA DE JESUS',status:'URGÊNCIA'},
+    {placa:'FGH3I45',motorista:'LUCAS ROCHA',mov:'carga',operacao:'ENTREGA WINWIN',conferente:'JOSE FRANCISCO DOS SANTOS',status:''},
+    {placa:'KLM6N78',motorista:'ANDRÉ PRADO',mov:'descarga',operacao:'COLETA MATTEL',conferente:'THIERRY HENRY LIMA DA LUZ',status:''},
+    {placa:'QRS9T01',motorista:'BRUNO DIAS',mov:'carga',operacao:'ENTREGA BRAFT',conferente:'DAVID EDISON SILVA DE MORAES',status:''},
+    {placa:'UVW2X34',motorista:'DIEGO RAMOS',mov:'carga',operacao:'ENTREGA MATTEL',conferente:'JOAO ARAUJO COSTA',status:''},
+    {placa:'AAA1B11',motorista:'IVO NUNES',mov:'descarga',operacao:'DEVOLUÇÃO',conferente:'',status:'AGENTES'},
+  ];
+  CFG.opsV2 = {dia:hojeBR(), lista};
+  D.confOps = [
+    {placa:'UVW2X34',tipoExecucao:'SAIDA',conferenteNome:'JOAO ARAUJO COSTA',timestamp:m(40),paletes:[{tipo:'PBR',quantidade:18},{tipo:'DESCARTAVEL',quantidade:6}]},
+    {placa:'QRS9T01',tipoExecucao:'SAIDA',conferenteNome:'DAVID EDISON SILVA DE MORAES',timestamp:m(25),paletes:[{tipo:'PBR',quantidade:12}]},
+    {placa:'MLK2J09',tipoExecucao:'ENTRADA',conferenteNome:'ABNER FERNANDO DOS SANTOS',timestamp:m(15),paletes:[{tipo:'PBR',quantidade:20}]},
+    {placa:'KLM6N78',tipoExecucao:'ENTRADA',conferenteNome:'THIERRY HENRY LIMA DA LUZ',timestamp:m(10),paletes:[{tipo:'OUTROS',quantidade:4},{tipo:'PBR',quantidade:8}]},
+    {placa:'ZZZ9Y88',tipoExecucao:'ENTRADA',conferenteNome:'JOSE FRANCISCO DOS SANTOS',timestamp:m(5),cliente:'MATTEL',paletes:[{tipo:'DESCARTAVEL',quantidade:10}]},
+    {placa:'XPT0A00',tipoExecucao:'SAIDA',conferenteNome:'JOAO ARAUJO COSTA',timestamp:m(90),paletes:[{tipo:'PBR',quantidade:6}]},
+    {placa:'XPT0A01',tipoExecucao:'ENTRADA',conferenteNome:'GUILHERME PEREIRA DE JESUS',timestamp:m(80),paletes:[]},
+  ];
+  D.confOk = true;
+  const t = hojeISO(), ym=t.slice(0,7), dd=t.slice(8,10);
+  const nomes = [['JOAO GABRIEL O. SOARES','LÍDER','P'],['MARCUS GEORGE C. NASCIMENTO','ANALISTA','P'],['JOSE AGUINALDO S SOUZA','ANALISTA','FE'],
+    ['JOAO ARAUJO COSTA','CONFERENTE','P'],['ABNER FERNANDO DOS SANTOS','CONFERENTE','P'],['GUILHERME PEREIRA DE JESUS','CONFERENTE','P'],['THIERRY HENRY LIMA DA LUZ','CONFERENTE','P'],
+    ['DAVID EDISON SILVA DE MORAES','CONFERENTE','P'],['JOSE FRANCISCO DOS SANTOS','CONFERENTE','P'],['JEAN GABRIEL HENICKA TORMES','CONFERENTE','AT'],
+    ['JOAO PAULO DE SOUSA','AJUDANTE','P'],['ALAN JORDAN DE OLIVEIRA SILVA','AJUDANTE','FO'],['NOVO COLABORADOR TESTE','AJUDANTE','']];
+  D.abs.colab = {}; D.abs.mes = {};
+  nomes.forEach(([n,f,c],i)=>{ D.abs.colab['p'+i]={nome:n,funcoes:[{funcao:f,inicio:'2025-01-01'}]}; if(c) D.abs.mes['p'+i]={[dd]:{c}}; });
+  D.abs.ok = true;
+  const ext = [['ANTONIO MARQUES','CARGA/DESCARGA','Presente','07:02'],['BENEDITO REIS','CARGA/DESCARGA','Presente','07:10'],['CLAUDIO SANTOS','CARGA/DESCARGA','Ausente',''],
+    ['DANIEL PEREIRA','AJUDANTE ROTA','Presente','06:55'],['EDSON LOPES','AJUDANTE ROTA','Validada',''],['FABIO MATOS','CARGA/DESCARGA','Presente','07:30'],['GILSON ARAUJO','AJUDANTE ROTA','Encerrado','06:00']];
+  D.ext.list = {}; ext.forEach(([n,o,s,c],i)=>D.ext.list['e'+i]={data:t,colNome:n,opNome:o,status:s,chegada:c,empresaNome:'RH SERVICE'});
+  D.ext.ok = true;
+  CFG.safetyDate = '2026-09-01';
+  CFG.ticker = 'Atenção: inventário do pátio às 16h · Use sempre o EPI · Bom trabalho a todos!';
+  const only = new URLSearchParams(location.search).get('tela');
+  if(only){ CFG.v2.on = {ops:false,resumo:false,equipe:false,conf:false,pal:false}; CFG.v2.on[only]=true; CFG.v2.intercalar=false; CFG.v2.dur[only]=9999; }
+}
+
+/* ---------------- início ---------------- */
+document.addEventListener('DOMContentLoaded', ()=>{
+  tick(); setInterval(()=>{ tick(); applySafety(); }, 1000);
+  if(DEMO) demo(); else initFirebase();
+  applyTicker();
+  next();
+  // tela cheia no primeiro toque (TVs costumam bloquear automático)
+  document.addEventListener('click', ()=>{ const el=document.documentElement; const r=el.requestFullscreen||el.webkitRequestFullscreen; if(r && !document.fullscreenElement) r.call(el).catch(()=>{}); }, {once:true});
+});
+</script>
+</body>
+</html>

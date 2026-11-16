@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DASCH v2 — Cadastro e Configurações</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{--bg:#0b1426;--card:#16233f;--card2:#0f1a33;--line:#2a3b5f;--txt:#eef2f8;--muted:#94a3c0;--laranja:#E8611A;--amarelo:#f4c20d;--verde:#1fa851;--vermelho:#e64545;--carga:#2f9e5b;--descarga:#d9822b;--ambos:#7b61d6;}
+*{box-sizing:border-box;}
+body{margin:0;background:linear-gradient(160deg,#0b1426,#15223d);color:var(--txt);font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:14px;min-height:100vh;}
+button,input,select,textarea{font-family:inherit;font-size:inherit;}
+button{cursor:pointer;}
+.wrap{max-width:1500px;margin:0 auto;padding:22px 28px 60px;}
+header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:12px;}
+header img{height:44px;background:#fff;border-radius:6px;padding:3px 6px;}
+header h1{margin:0;font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;letter-spacing:.3px;}
+header p{margin:2px 0 0;color:var(--muted);font-size:13px;}
+header .sp{flex:1;}
+.btn{border:none;border-radius:8px;padding:9px 14px;font-weight:700;color:#fff;background:#33456b;display:inline-flex;align-items:center;gap:6px;text-decoration:none;white-space:nowrap;}
+.btn.pri{background:var(--laranja);} .btn.ok{background:var(--verde);} .btn.danger{background:#7a2330;} .btn.sm{padding:6px 10px;font-size:12px;} .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--muted);}
+.btn:disabled{opacity:.45;cursor:default;}
+.status{font-size:13px;padding:8px 12px;border-radius:8px;margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;}
+.status span{padding:3px 10px;border-radius:12px;background:rgba(148,163,192,.12);color:var(--muted);}
+.status span.ok{background:rgba(31,168,81,.15);color:#6ff0a0;} .status span.bad{background:rgba(230,69,69,.15);color:#ff8f8f;}
+.box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;}
+.box h2{margin:0 0 12px;font-size:17px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding-bottom:10px;}
+.box h2 .r{margin-left:auto;display:flex;gap:8px;align-items:center;font-size:13px;font-weight:600;}
+.hint{color:var(--muted);font-size:12px;line-height:1.5;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px;}
+.ops-grid{display:grid;grid-template-columns:minmax(380px,1fr) 1.6fr;gap:20px;}
+@media (max-width:1100px){.ops-grid,.grid2{grid-template-columns:1fr;}}
+label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px;font-weight:700;}
+input[type=text],input[type=number],input[type=date],input[type=email],input[type=password],select,textarea{width:100%;padding:8px 10px;border-radius:7px;border:1px solid var(--line);background:var(--card2);color:var(--txt);}
+textarea{min-height:70px;resize:vertical;}
+
+/* seletor de placas */
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+.seg button{background:transparent;border:none;color:var(--muted);padding:6px 11px;font-weight:700;font-size:12px;}
+.seg button.on{background:var(--laranja);color:#fff;}
+.pick-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
+.pick-tools input{flex:1;min-width:140px;}
+.pick-list{max-height:62vh;overflow-y:auto;border:1px solid var(--line);border-radius:10px;background:var(--card2);}
+.pk{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid #1d2b4a;}
+.pk:last-child{border-bottom:none;}
+.pk.added{opacity:.55;}
+.pk .inf{flex:1;min-width:0;}
+.pk .inf b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pk .inf small{display:block;color:var(--muted);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tag{display:inline-block;font-size:10.5px;font-weight:800;padding:1px 7px;border-radius:9px;margin-right:4px;}
+.t-hoje{background:rgba(232,97,26,.22);color:#ffb07f;} .t-amanha{background:rgba(88,176,255,.18);color:#9ccfff;}
+.mv-tag{color:#fff;} .mv-carga{background:var(--carga);} .mv-descarga{background:var(--descarga);} .mv-carga_descarga{background:var(--ambos);}
+.manual{display:flex;gap:8px;margin-top:10px;}
+.manual input{text-transform:uppercase;}
+
+/* placa mini */
+.plate{--u:5.2px;flex:0 0 auto;width:calc(var(--u)*17);aspect-ratio:400/130;background:#fff;border:2px solid #111;border-radius:5px;display:flex;flex-direction:column;overflow:hidden;}
+.pl-band{flex:0 0 27%;background:#0039a6;display:flex;align-items:center;justify-content:center;}
+.pl-band span{color:#fff;font-weight:800;font-size:calc(var(--u)*1.05);letter-spacing:.14em;}
+.pl-num{flex:1;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:700;font-size:calc(var(--u)*3.3);color:#111;letter-spacing:.05em;line-height:1;}
+
+/* lista no painel */
+.ops-list{display:flex;flex-direction:column;gap:8px;max-height:72vh;overflow-y:auto;padding-right:4px;}
+.op{background:var(--card2);border:1px solid var(--line);border-left:5px solid #5c6478;border-radius:10px;padding:10px 12px;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;align-items:center;}
+.op.c-carga{border-left-color:var(--carga);} .op.c-descarga{border-left-color:var(--descarga);} .op.c-carga_descarga{border-left-color:var(--ambos);}
+.op.done{background:rgba(31,168,81,.10);border-color:rgba(31,168,81,.5);}
+.op .l1{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.op .l1 .mot{color:var(--muted);font-size:12px;font-weight:600;}
+.op .l1 .auto{font-size:12px;font-weight:800;color:#6ff0a0;}
+.op .l1 .x{margin-left:auto;}
+.op .l2{grid-column:1/-1;display:grid;grid-template-columns:auto 1.3fr 1.3fr 1fr;gap:8px;align-items:center;}
+@media (max-width:800px){.op .l2{grid-template-columns:1fr;}}
+.mv{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+.mv button{background:transparent;border:none;color:var(--muted);padding:7px 9px;font-weight:800;font-size:12px;}
+.mv button.on[data-v=carga]{background:var(--carga);color:#fff;} .mv button.on[data-v=descarga]{background:var(--descarga);color:#fff;} .mv button.on[data-v=carga_descarga]{background:var(--ambos);color:#fff;}
+.op select.urg{border-color:var(--vermelho);color:#ff9d9d;}
+.empty{padding:28px;text-align:center;color:var(--muted);}
+.sum{display:flex;gap:10px;font-size:12.5px;font-weight:700;}
+.sum b{font-size:15px;}
+.screens{width:100%;border-collapse:collapse;}
+.screens th{text-align:left;color:var(--muted);font-size:12px;padding:6px 6px;border-bottom:1px solid var(--line);}
+.screens td{padding:6px;border-bottom:1px solid #1d2b4a;}
+.screens input[type=number]{width:90px;}
+.chk{display:flex;align-items:center;gap:8px;margin-top:12px;font-weight:600;}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1f2d4d;border:1px solid var(--line);padding:10px 18px;border-radius:10px;font-weight:700;z-index:99;box-shadow:0 8px 30px rgba(0,0,0,.4);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="logo-portoex.png" alt="" onerror="this.style.display='none'"/>
+    <div><h1>DASCH v2 — Painel da Expedição</h1><p>Cadastro rápido das operações do dia e configurações da TV. Tudo salva sozinho na nuvem.</p></div>
+    <div class="sp"></div>
+    <a class="btn pri" href="tv-v2.html" target="_blank">📺 Abrir a TV</a>
+  </header>
+
+  <div class="status" id="status"><span id="stFb">Conectando…</span><span id="stProg">Programação: —</span><span id="stConf">Conferência: —</span><span id="stAbs">Absenteísmo: —</span></div>
+
+  <!-- ============ OPERAÇÕES DO DIA ============ -->
+  <div class="box">
+    <h2>🚚 Operações do dia <span id="hojeLbl" style="color:var(--muted);font-weight:600;font-size:14px"></span>
+      <span class="r"><span class="sum" id="sum"></span></span></h2>
+    <div class="ops-grid">
+      <div>
+        <div class="pick-tools">
+          <div class="seg" id="segDia"><button data-f="todos" class="on">Hoje + próximo</button><button data-f="hoje">Hoje</button><button data-f="amanha" id="segAmanha">Próximo dia</button></div>
+          <input type="text" id="busca" placeholder="🔎 placa, motorista ou cliente"/>
+        </div>
+        <div class="pick-tools">
+          <button class="btn ok sm" id="addTodas">＋ Adicionar todas de hoje</button>
+          <button class="btn ghost sm" id="reload">↻ Reler programação</button>
+          <span class="hint" id="pickInfo"></span>
+        </div>
+        <div class="pick-list" id="pickList"><div class="empty">Lendo a Programação…</div></div>
+        <div class="manual"><input type="text" id="manPlaca" placeholder="Placa fora da programação (ex: ABC1D23)" maxlength="8"/><button class="btn sm" id="manAdd">＋ Incluir</button></div>
+        <div class="hint" style="margin-top:8px">A lista mostra as placas da <b>Programação</b> de hoje e do próximo dia programado, em ordem alfabética, sem repetir. O tipo (Carga/Descarga) e a operação já vêm sugeridos pelas linhas da planilha — é só conferir.</div>
+      </div>
+      <div>
+        <div class="pick-tools" style="justify-content:space-between">
+          <b>No painel hoje</b>
+          <span class="hint">✔ fica <b style="color:#6ff0a0">concluído sozinho</b> quando o conferente finaliza no app (Carga = saída · Descarga = entrada)</span>
+        </div>
+        <div class="ops-list" id="opsList"><div class="empty">Nenhum veículo no painel ainda. Clique em ＋ nas placas ao lado.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CONFIGURAÇÕES ============ -->
+  <div class="grid2">
+    <div class="box">
+      <h2>📢 Letreiro (Ticker)</h2>
+      <label>Mensagem que corre embaixo da tela</label>
+      <textarea id="cTicker"></textarea>
+      <div class="hint">Aparece em todas as telas.</div>
+    </div>
+    <div class="box">
+      <h2>🟢 Painel de Segurança</h2>
+      <label>Data do primeiro dia da contagem (sem acidentes)</label>
+      <input type="date" id="cSafety"/>
+      <div class="hint">A TV mostra "ESTAMOS HÁ (X) DIAS SEM ACIDENTES" (tela Resumo). Quando ocorrer um acidente, atualize esta data para reiniciar a contagem.</div>
+    </div>
+    <div class="box" style="grid-column:1/-1">
+      <h2>⏱ Telas — Duração e Zoom <span class="r"><button class="btn ok sm" id="saveCfg">💾 Salvar configurações</button></span></h2>
+      <table class="screens">
+        <thead><tr><th>Exibir</th><th>Tela</th><th>Duração (s)</th><th>Zoom (%)</th></tr></thead>
+        <tbody id="scrRows"></tbody>
+      </table>
+      <label class="chk"><input type="checkbox" id="cInter"/> Intercalar: a tela de <b>Operações</b> volta entre cada uma das outras (fica muito mais tempo na TV)</label>
+      <div style="display:flex;gap:16px;align-items:end;margin-top:6px;flex-wrap:wrap">
+        <div style="width:260px"><label>Cards por página na tela de Operações</label><input type="number" id="cPorPag" min="0" max="30"/></div>
+        <div class="hint" style="flex:1">0 = automático (cabe o máximo legível; se não couber, a tela troca de página sozinha). <span id="cicloInfo"></span></div>
+      </div>
+    </div>
+    <div class="box" style="grid-column:1/-1">
+      <h2>🔑 Acesso — Sistema de Conferência</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><label>E-mail</label><input type="email" id="cEmail"/></div>
+        <div><label>Senha</label><input type="password" id="cPass"/></div>
+      </div>
+      <div class="hint">Usado pela TV e por esta página para ler as conferências, paletes e salvar o painel (Firestore conferenciaptx).</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   DASCH v2 — CADASTRO / CONFIGURAÇÕES
+   Grava no mesmo documento do painel atual (dasch_config/painel) com
+   merge — campos novos: v2 (telas) e opsV2 (operações do dia).
+   Letreiro, data de segurança e acesso são os mesmos do painel atual.
+===================================================================== */
+const LS_KEY = 'dasch_config_v1';
+const SCREENS = [['ops','Operações do dia (placas)'],['resumo','Resumo + Segurança'],['equipe','Equipe do dia (interna + terceirizada)'],['conf','Conferências por conferente'],['pal','Paletes do dia']];
+const V2_DEF = { dur:{ops:30,resumo:12,equipe:15,conf:12,pal:12}, zoom:{ops:100,resumo:100,equipe:100,conf:100,pal:100}, on:{ops:true,resumo:true,equipe:true,conf:true,pal:true}, intercalar:true, porPagina:0 };
+const SHEET_ID_PADRAO = '1R94r4llhbqlzYVGK8YqsyEIJn9bAkBsn6V3NCBl7MDM';
+const MOV_LBL = {carga:'Carga', descarga:'Descarga', carga_descarga:'Carga + Descarga'};
+const STATUS_OPC = [['','Automático'],['URGÊNCIA','🔴 Urgência'],['AGENTES','🔵 Agentes'],['CONCLUÍDO','✔ Concluído (manual)'],['NÃO FOI FEITO','⚪ Não foi feito']];
+
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,'0');
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
+const plateKey = s => String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+function fmtD(d){ return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear(); }
+function parseD(s){ const [d,m,y] = String(s).split('/').map(Number); return new Date(y,(m||1)-1,d||1); }
+function addD(s,n){ const d = parseD(s); d.setDate(d.getDate()+n); return fmtD(d); }
+const hojeBR = () => fmtD(new Date());
+const hojeISO = () => { const d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); };
+const tsMs = t => t && t.toMillis ? t.toMillis() : (t && t.seconds ? t.seconds*1000 : 0);
+const hhmm = ms => { if(!ms) return ''; const d=new Date(ms); return pad(d.getHours())+':'+pad(d.getMinutes()); };
+const SEMANA = ['dom','seg','ter','qua','qui','sex','sáb'];
+function toast(t){ document.querySelectorAll('.toast').forEach(e=>e.remove()); const x=document.createElement('div'); x.className='toast'; x.textContent=t; document.body.appendChild(x); setTimeout(()=>x.remove(),2600); }
+function plateHTML(p){ return `<div class="plate"><div class="pl-band"><span>BRASIL</span></div><div class="pl-num">${esc(plateKey(p))}</div></div>`; }
+
+/* ---------------- configuração ---------------- */
+function defCfg(){ return { ticker:'Bem-vindo à PortoEx! Trabalhe com segurança todos os dias.', safetyDate:hojeISO(), sys1Email:'andre.luis@portoex.com.br', sys1Pass:'andre185166', v2:JSON.parse(JSON.stringify(V2_DEF)), opsV2:{dia:'',lista:[]} }; }
+function mergeCfg(d){
+  const c = Object.assign(defCfg(), d||{}); const v = (d&&d.v2)||{};
+  c.v2 = { dur:Object.assign({},V2_DEF.dur,v.dur), zoom:Object.assign({},V2_DEF.zoom,v.zoom), on:Object.assign({},V2_DEF.on,v.on), intercalar: v.intercalar!==undefined?!!v.intercalar:true, porPagina:+v.porPagina||0 };
+  if(!c.opsV2 || typeof c.opsV2!=='object') c.opsV2={dia:'',lista:[]};
+  return c;
+}
+let CFG = defCfg();
+try{ const raw=localStorage.getItem(LS_KEY); if(raw) CFG = mergeCfg(JSON.parse(raw)); }catch(e){}
+let LISTA = []; // operações de hoje
+function syncLista(){ LISTA = CFG.opsV2 && CFG.opsV2.dia===hojeBR() ? (CFG.opsV2.lista||[]).slice() : []; }
+syncLista();
+
+/* ---------------- estado ---------------- */
+const P = { sheetId:'', tabs:null, dias:[], plates:{}, filtro:'todos', busca:'', ok:null, prox:'' };
+let CONF = []; // conferências de hoje
+const ABS = { colab:null, mes:null, ok:null };
+
+/* =====================================================================
+   PROGRAMAÇÃO (mesma leitura do PROGRAMACAO-ALINHAMENTO)
+===================================================================== */
+function plates(s){
+  const t = String(s||'').toUpperCase().replace(/[-\s]/g,' ');
+  const out=[]; const re=/\b([A-Z]{3})\s?(\d[A-Z0-9]\d{2})\b/g; let m;
+  while((m=re.exec(t))) out.push(m[1]+m[2]);
+  return [...new Set(out)];
+}
+function tipoDe(op){ const s=norm(op);
+  if(/^colet/.test(s)) return 'COLETA'; if(/^(embarque|embaque|embarq)/.test(s)) return 'EMBARQUE'; if(/^entreg/.test(s)) return 'ENTREGA';
+  if(/^devol/.test(s)) return 'DEVOLUÇÃO'; if(/^transf/.test(s)) return 'TRANSFERÊNCIA'; return 'OUTRO'; }
+const STOP = new Set(['ltda','eireli','epp','me','sa','s','a','cia','comercio','com','industria','ind','de','da','do','dos','das','e','the','importacao','exportacao','transportes','transporte','logistica']);
+function firstWord(s){ const w = norm(s).replace(/[^a-z0-9 ]/g,' ').split(' ').filter(x=>x.length>=3 && !STOP.has(x) && !/^\d+$/.test(x)); return w[0]||''; }
+function clienteDe(op){ let s = norm(op).replace(/^(coleta|embarque|embaque|embarq|entrega|devolucao|devolver|devolucao de|transferencia)\s*/,''); s = s.replace(/\d{1,2}\/\d{1,2}(\/\d{2,4})?/g,' '); return firstWord(s).toUpperCase(); }
+const ehVeiculoHeader = a => /(\d[\d.]*\s*kg|carreta|truck|toco|vuc|bitruck|fiorino|van\b|3\/4|utilit)/i.test(a);
+
+async function loadTabList(){
+  const t = await (await fetch('https://docs.google.com/spreadsheets/d/'+P.sheetId+'/htmlview?_t='+Date.now(), {cache:'no-store'})).text();
+  const map = {}; const re = /name:\s*"((?:[^"\\]|\\.)*)"[^}]*?gid:\s*"(\d+)"/g; let m;
+  while((m=re.exec(t))){
+    const name = m[1].replace(/\\\//g,'/').replace(/\\x([0-9a-f]{2})/gi,(_,x)=>String.fromCharCode(parseInt(x,16))).trim();
+    const d = name.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
+    if(d) map[pad(d[1])+'/'+pad(d[2])+'/'+(d[3]?(d[3].length===2?'20'+d[3]:d[3]):new Date().getFullYear())] = m[2];
+  }
+  return map;
+}
+function parseCsv(t){
+  const rows=[]; let row=[], cur='', q=false;
+  for(let i=0;i<t.length;i++){ const ch=t[i];
+    if(q){ if(ch==='"'){ if(t[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
+    else if(ch==='"') q=true; else if(ch===','){row.push(cur);cur='';} else if(ch==='\n'){row.push(cur);rows.push(row);row=[];cur='';} else if(ch!=='\r') cur+=ch; }
+  if(cur||row.length){row.push(cur);rows.push(row);}
+  return rows;
+}
+async function csvDay(gid){
+  const r = await fetch('https://docs.google.com/spreadsheets/d/'+P.sheetId+'/export?format=csv&gid='+gid+'&_t='+Date.now(), {cache:'no-store'});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return parseCsv(await r.text()).slice(1).map(c=>c.map(x=>String(x||'').trim()));
+}
+async function loadProgramacao(){
+  $('pickList').innerHTML = '<div class="empty">Lendo a Programação…</div>';
+  try{
+    if(!P.sheetId) P.sheetId = SHEET_ID_PADRAO;
+    P.tabs = await loadTabList();
+    const hoje = hojeBR();
+    // próximo dia = primeira aba depois de hoje (pula fim de semana/feriado sem aba), até 7 dias
+    let prox = ''; for(let i=1;i<=7;i++){ const d=addD(hoje,i); if(P.tabs[d]){ prox=d; break; } }
+    P.prox = prox;
+    $('segAmanha').textContent = prox ? `Próximo dia (${prox.slice(0,5)} ${SEMANA[parseD(prox).getDay()]})` : 'Próximo dia';
+    P.plates = {};
+    const dias = [hoje, prox].filter(Boolean);
+    for(const dia of dias){
+      const gid = P.tabs[dia]; if(gid==null) continue;
+      const linhas = await csvDay(gid);
+      linhas.forEach(c=>{
+        const op = c[0]||'', mot = c[1]||'', pl = plates(c[2]);
+        if(!pl.length || /^coleta\/entrega\/processo/i.test(op)) return;
+        const k = pl[0];
+        const x = P.plates[k] = P.plates[k] || {placa:k, motorista:'', dias:new Set(), tipos:{}, clientes:new Set(), linhas:0, tipoVeic:''};
+        if(mot && !x.motorista) x.motorista = mot.toUpperCase();
+        x.dias.add(dia===hoje?'hoje':'amanha');
+        const tp = tipoDe(op);
+        if(tp==='OUTRO'){ if(ehVeiculoHeader(op) && !x.tipoVeic) x.tipoVeic = op; return; }
+        if(dia!==hoje && x.dias.has('hoje')) return; // sugestão vem do dia de hoje
+        x.tipos[tp] = (x.tipos[tp]||0)+1; x.linhas++;
+        const cl = clienteDe(op); if(cl) x.clientes.add(cl);
+      });
+    }
+    P.ok = true;
+    $('stProg').className='ok'; $('stProg').textContent = `Programação: ${Object.keys(P.plates).length} placas (${dias.map(d=>d.slice(0,5)).join(' + ')})`;
+    if(!P.tabs[hoje]) $('pickInfo').textContent = '⚠ Não achei a aba de hoje na planilha.';
+  }catch(e){
+    console.warn('programação', e); P.ok=false;
+    $('stProg').className='bad'; $('stProg').textContent='Programação: erro ao ler a planilha';
+  }
+  renderPick();
+}
+function sugestao(x){
+  const t = x.tipos;
+  const sai = (t['ENTREGA']||0)+(t['EMBARQUE']||0)+(t['DEVOLUÇÃO']||0)+(t['TRANSFERÊNCIA']||0);
+  const ent = (t['COLETA']||0);
+  const mov = sai && ent ? 'carga_descarga' : (ent ? 'descarga' : 'carga');
+  const tiposOrd = Object.entries(t).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
+  const cl = [...x.clientes].slice(0,2).join(', ') + (x.clientes.size>2 ? ' +'+(x.clientes.size-2) : '');
+  const operacao = ((tiposOrd.length===1 ? tiposOrd[0] : tiposOrd.slice(0,2).join(' + ')) + (cl ? ' ' + cl : '')).trim();
+  return {mov, operacao};
+}
+
+/* ---------------- render: placas disponíveis ---------------- */
+function renderPick(){
+  const box = $('pickList');
+  const no = new Set(LISTA.map(o=>plateKey(o.placa)));
+  const q = norm(P.busca);
+  let arr = Object.values(P.plates).filter(x=>{
+    if(P.filtro==='hoje' && !x.dias.has('hoje')) return false;
+    if(P.filtro==='amanha' && !x.dias.has('amanha')) return false;
+    if(q && !norm(x.placa+' '+x.motorista+' '+[...x.clientes].join(' ')).includes(q)) return false;
+    return true;
+  }).sort((a,b)=>a.placa.localeCompare(b.placa));
+  if(!arr.length){ box.innerHTML = `<div class="empty">${P.ok===false?'Não foi possível ler a Programação. Use o campo abaixo para incluir a placa.':'Nenhuma placa encontrada.'}</div>`; return; }
+  box.innerHTML = arr.map(x=>{
+    const s = sugestao(x); const added = no.has(x.placa);
+    return `<div class="pk${added?' added':''}">${plateHTML(x.placa)}
+      <div class="inf"><b>${esc(x.motorista||'— sem motorista —')}</b>
+        <small>${x.dias.has('hoje')?'<span class="tag t-hoje">HOJE</span>':''}${x.dias.has('amanha')?`<span class="tag t-amanha">${P.prox?P.prox.slice(0,5):'PRÓX.'}</span>`:''}<span class="tag mv-tag mv-${s.mov}">${MOV_LBL[s.mov]}</span>${esc(s.operacao)}</small></div>
+      ${added?'<span class="hint">✔ no painel</span>':`<button class="btn ok sm" data-add="${x.placa}">＋</button>`}</div>`;
+  }).join('');
+  $('pickInfo').textContent = `${arr.length} placa(s)`;
+}
+
+/* ---------------- operações no painel ---------------- */
+function novaOp(placa){
+  const x = P.plates[placa];
+  const s = x ? sugestao(x) : {mov:'carga', operacao:''};
+  return { id:placa, placa, motorista: x ? x.motorista : '', mov:s.mov, operacao:s.operacao, conferente:'', status:'', criadoEm:Date.now() };
+}
+function addPlaca(placa){
+  placa = plateKey(placa);
+  if(!/^[A-Z]{3}\d[A-Z0-9]\d{2}$/.test(placa)){ toast('Placa inválida. Use o formato ABC1D23 ou ABC1234.'); return; }
+  if(LISTA.some(o=>plateKey(o.placa)===placa)){ toast('Essa placa já está no painel.'); return; }
+  LISTA.push(novaOp(placa));
+  salvarOps(); renderOps(); renderPick();
+}
+function confIdx(){
+  const m = {};
+  CONF.forEach(o=>{ const k=plateKey(o.placa); if(!k) return; const x=m[k]=m[k]||{s:[],e:[]}; (o.tipoExecucao==='SAIDA'?x.s:x.e).push(o); });
+  return m;
+}
+function autoStatus(o, idx){
+  const c = idx[plateKey(o.placa)] || {s:[],e:[]};
+  const temC=c.s.length>0, temD=c.e.length>0;
+  const done = o.mov==='carga' ? temC : o.mov==='descarga' ? temD : (temC && temD);
+  const docs=[...c.s,...c.e].sort((a,b)=>tsMs(a.timestamp)-tsMs(b.timestamp)); const last=docs[docs.length-1];
+  let txt = '';
+  if(done) txt = `✔ concluído pela conferência${last?' às '+hhmm(tsMs(last.timestamp))+' ('+(last.conferenteNome||'')+')':''}`;
+  else if(temC||temD) txt = temD ? '◐ descarga conferida · falta carga' : '◐ carga conferida · falta descarga';
+  return {done, txt};
+}
+function conferentesOpc(sel){
+  const t = hojeISO(), dd=t.slice(8,10), out = [];
+  if(ABS.colab){
+    Object.entries(ABS.colab).forEach(([id,c])=>{
+      if(!c) return; const fns=(Array.isArray(c.funcoes)?c.funcoes:Object.values(c.funcoes||{})).slice().sort((a,b)=>a.inicio<b.inicio?-1:1);
+      const ini = c.admissao || (fns[0]||{}).inicio || '0000';
+      if(ini>t || (c.desligamento && t>=c.desligamento)) return;
+      let fn = fns[0]?fns[0].funcao:''; fns.forEach(f=>{ if(f.inicio<=t) fn=f.funcao; });
+      const r = ABS.mes && ABS.mes[id] && ABS.mes[id][dd]; const code = r&&r.c ? r.c : '';
+      const pres = ['P','H','AP'].includes(code);
+      out.push({nome:c.nome, fn, pres, aus: code && !pres});
+    });
+  }
+  const rank = p => (p.pres?0:p.aus?2:1)*10 + (/CONFER/.test(p.fn)?0:/L[IÍ]DER/.test(p.fn)?1:2);
+  out.sort((a,b)=>rank(a)-rank(b) || a.nome.localeCompare(b.nome,'pt'));
+  const names = new Set(out.map(p=>p.nome));
+  let h = `<option value="">— responsável —</option>`;
+  if(sel && !names.has(sel)) h += `<option selected>${esc(sel)}</option>`;
+  h += out.map(p=>`<option value="${esc(p.nome)}"${p.nome===sel?' selected':''}>${p.pres?'● ':p.aus?'✕ ':'○ '}${esc(p.nome)}${p.fn?' · '+esc(p.fn):''}</option>`).join('');
+  return h;
+}
+function renderOps(){
+  const box = $('opsList'); const idx = confIdx();
+  const arr = LISTA.slice().sort((a,b)=>plateKey(a.placa).localeCompare(plateKey(b.placa)));
+  let nDone = 0;
+  const rows = arr.map(o=>{ const a = autoStatus(o, idx); const done = a.done || o.status==='CONCLUÍDO'; if(done) nDone++; return {o,a,done}; });
+  rows.sort((x,y)=> x.done-y.done);
+  $('sum').innerHTML = `<span><b>${LISTA.length}</b> no painel</span><span style="color:#6ff0a0"><b>${nDone}</b> concluídos</span><span style="color:var(--amarelo)"><b>${LISTA.length-nDone}</b> a fazer</span>`;
+  if(!rows.length){ box.innerHTML = '<div class="empty">Nenhum veículo no painel ainda. Clique em ＋ nas placas ao lado.</div>'; return; }
+  box.innerHTML = rows.map(({o,a,done})=>`
+    <div class="op c-${o.mov}${done?' done':''}" data-id="${esc(o.id)}">
+      ${plateHTML(o.placa)}
+      <div class="l1"><span class="mot">🚚 ${esc(o.motorista||'sem motorista')}</span>${a.txt?`<span class="auto">${esc(a.txt)}</span>`:''}<button class="btn danger sm x" data-del="${esc(o.id)}" title="Tirar do painel">✕</button></div>
+      <div class="l2">
+        <div class="mv">${['carga','descarga','carga_descarga'].map(v=>`<button data-v="${v}" class="${o.mov===v?'on':''}">${v==='carga_descarga'?'C + D':MOV_LBL[v]}</button>`).join('')}</div>
+        <input type="text" data-f="operacao" value="${esc(o.operacao)}" placeholder="Operação (ex: ENTREGA MATTEL)" list="dlOps"/>
+        <select data-f="conferente">${conferentesOpc(o.conferente)}</select>
+        <select data-f="status" class="${o.status==='URGÊNCIA'?'urg':''}">${STATUS_OPC.map(([v,l])=>`<option value="${v}"${(o.status||'')===v?' selected':''}>${l}</option>`).join('')}</select>
+      </div>
+    </div>`).join('') + `<datalist id="dlOps">${[...new Set(LISTA.map(o=>o.operacao).filter(Boolean))].map(v=>`<option value="${esc(v)}">`).join('')}</datalist>`;
+}
+function findOp(id){ return LISTA.find(o=>o.id===id); }
+
+/* ---------------- salvar ---------------- */
+let fs1=null, auth1=null, ready=false, saveT=null;
+function salvarOps(){
+  CFG.opsV2 = {dia:hojeBR(), lista:LISTA};
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(CFG)); }catch(e){}
+  clearTimeout(saveT);
+  saveT = setTimeout(()=>{
+    if(!ready){ return; }
+    fs1.collection('dasch_config').doc('painel').set({opsV2:CFG.opsV2}, {merge:true})
+      .then(()=>{ $('stFb').className='ok'; $('stFb').textContent='☁ Salvo na nuvem '+hhmm(Date.now()); })
+      .catch(e=>{ $('stFb').className='bad'; $('stFb').textContent='⚠ Erro ao salvar: '+e.message; });
+  }, 500);
+}
+function lerForm(){
+  CFG.ticker = $('cTicker').value.trim();
+  CFG.safetyDate = $('cSafety').value || hojeISO();
+  CFG.sys1Email = $('cEmail').value.trim(); CFG.sys1Pass = $('cPass').value;
+  SCREENS.forEach(([k])=>{
+    CFG.v2.on[k] = $('on_'+k).checked;
+    CFG.v2.dur[k] = Math.max(5, +$('dur_'+k).value || V2_DEF.dur[k]);
+    CFG.v2.zoom[k] = Math.min(200, Math.max(50, +$('zoom_'+k).value || 100));
+  });
+  CFG.v2.intercalar = $('cInter').checked;
+  CFG.v2.porPagina = Math.max(0, +$('cPorPag').value || 0);
+}
+function salvarCfg(){
+  lerForm();
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(CFG)); }catch(e){}
+  if(!ready){ toast('Salvo neste navegador. Sem conexão com a nuvem ainda.'); return; }
+  fs1.collection('dasch_config').doc('painel').set({ ticker:CFG.ticker, safetyDate:CFG.safetyDate, sys1Email:CFG.sys1Email, sys1Pass:CFG.sys1Pass, v2:CFG.v2 }, {merge:true})
+    .then(()=>toast('✔ Configurações salvas — a TV atualiza sozinha')).catch(e=>toast('Erro ao salvar: '+e.message));
+}
+function preencherForm(){
+  $('cTicker').value = CFG.ticker||''; $('cSafety').value = CFG.safetyDate||''; $('cEmail').value = CFG.sys1Email||''; $('cPass').value = CFG.sys1Pass||'';
+  $('scrRows').innerHTML = SCREENS.map(([k,n])=>`<tr><td><input type="checkbox" id="on_${k}" ${CFG.v2.on[k]!==false?'checked':''}/></td><td><b>${n}</b></td>
+    <td><input type="number" id="dur_${k}" min="5" value="${CFG.v2.dur[k]}"/></td><td><input type="number" id="zoom_${k}" min="50" max="200" value="${CFG.v2.zoom[k]}"/></td></tr>`).join('');
+  $('cInter').checked = !!CFG.v2.intercalar; $('cPorPag').value = CFG.v2.porPagina||0;
+  cicloInfo();
+}
+function cicloInfo(){
+  try{ lerForm(); }catch(e){ return; }
+  const v = CFG.v2, others = SCREENS.map(s=>s[0]).filter(k=>k!=='ops' && v.on[k]);
+  const opsOn = v.on.ops!==false;
+  const tOps = opsOn ? (v.intercalar && others.length ? others.length : 1) * v.dur.ops : 0;
+  const tOut = others.reduce((s,k)=>s+v.dur[k],0);
+  const tot = tOps + tOut;
+  $('cicloInfo').textContent = tot ? `Ciclo completo: ${Math.round(tot)} s — Operações fica ${Math.round(tOps/tot*100)}% do tempo na TV.` : '';
+}
+
+/* ---------------- eventos ---------------- */
+document.addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  if(b.dataset.add){ addPlaca(b.dataset.add); return; }
+  if(b.dataset.del){ const o=findOp(b.dataset.del); if(o && confirm('Tirar '+o.placa+' do painel?')){ LISTA = LISTA.filter(x=>x.id!==o.id); salvarOps(); renderOps(); renderPick(); } return; }
+  if(b.dataset.v){ const row=b.closest('.op'); const o=findOp(row.dataset.id); if(o){ o.mov=b.dataset.v; salvarOps(); renderOps(); } return; }
+});
+$('segDia').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b) return; P.filtro=b.dataset.f; [...$('segDia').children].forEach(x=>x.classList.toggle('on',x===b)); renderPick(); });
+$('opsList').addEventListener('change', e=>{
+  const el=e.target; const row=el.closest('.op'); if(!row||!el.dataset.f) return; const o=findOp(row.dataset.id); if(!o) return;
+  o[el.dataset.f] = el.dataset.f==='operacao' ? el.value.trim().toUpperCase() : el.value;
+  salvarOps(); renderOps();
+});
+$('busca').addEventListener('input', e=>{ P.busca=e.target.value; renderPick(); });
+$('addTodas').addEventListener('click', ()=>{
+  const hoje = Object.values(P.plates).filter(x=>x.dias.has('hoje') && !LISTA.some(o=>plateKey(o.placa)===x.placa));
+  if(!hoje.length){ toast('Todas as placas de hoje já estão no painel.'); return; }
+  if(!confirm(`Adicionar ${hoje.length} placa(s) de hoje ao painel?`)) return;
+  hoje.sort((a,b)=>a.placa.localeCompare(b.placa)).forEach(x=>LISTA.push(novaOp(x.placa)));
+  salvarOps(); renderOps(); renderPick();
+});
+$('reload').addEventListener('click', loadProgramacao);
+$('manAdd').addEventListener('click', ()=>{ addPlaca($('manPlaca').value); $('manPlaca').value=''; });
+$('manPlaca').addEventListener('keydown', e=>{ if(e.key==='Enter'){ addPlaca(e.target.value); e.target.value=''; } });
+$('saveCfg').addEventListener('click', salvarCfg);
+document.querySelector('.grid2').addEventListener('input', cicloInfo);
+
+/* =====================================================================
+   FIREBASE
+===================================================================== */
+const SYS1 = { apiKey:"AIzaSyBp_ZfFiz1qWr4Gb4bc5h5mI1kHnjPwyCA", authDomain:"conferenciaptx.firebaseapp.com", projectId:"conferenciaptx", storageBucket:"conferenciaptx.firebasestorage.app", messagingSenderId:"78686885828", appId:"1:78686885828:web:0d70d13e2abaf35ee23691" };
+const ABS_FB = { apiKey:"AIzaSyDtCcj5tjXogtn97M6yKeasEpkT6Uc3bHo", authDomain:"absenteismo-fc544.firebaseapp.com", databaseURL:"https://absenteismo-fc544-default-rtdb.firebaseio.com", projectId:"absenteismo-fc544" };
+function demo(){
+  const hoje=hojeBR(), prox=addD(hoje,1); P.prox=prox; P.ok=true;
+  const mk=(pl,mot,d,tipos,cls)=>P.plates[pl]={placa:pl,motorista:mot,dias:new Set(d),tipos,clientes:new Set(cls),linhas:1,tipoVeic:''};
+  mk('RXA4F21','CARLOS SILVA',['hoje','amanha'],{ENTREGA:3},['MATTEL']); mk('QJT8B55','MARCOS LIMA',['hoje'],{COLETA:2},['BRAFT']);
+  mk('MLK2J09','PEDRO ALVES',['hoje'],{ENTREGA:1,COLETA:1},['SADIA','BRAFT']); mk('BCD1E23','RAFAEL SOUZA',['hoje'],{EMBARQUE:1},['CAMELON']);
+  mk('FGH3I45','LUCAS ROCHA',['amanha'],{ENTREGA:4},['WINWIN','MATTEL','BRF']); mk('KLM6N78','ANDRÉ PRADO',['hoje'],{COLETA:1},['MATTEL']);
+  $('segAmanha').textContent=`Próximo dia (${prox.slice(0,5)})`;
+  ABS.colab={a:{nome:'JOAO ARAUJO COSTA',funcoes:[{funcao:'CONFERENTE',inicio:'2025-01-01'}]},b:{nome:'ABNER FERNANDO DOS SANTOS',funcoes:[{funcao:'CONFERENTE',inicio:'2025-01-01'}]},c:{nome:'JOAO GABRIEL O. SOARES',funcoes:[{funcao:'LÍDER',inicio:'2025-01-01'}]}};
+  ABS.mes={a:{[hojeISO().slice(8,10)]:{c:'P'}},b:{[hojeISO().slice(8,10)]:{c:'P'}}};
+  LISTA=[Object.assign(novaOp('RXA4F21'),{conferente:'JOAO ARAUJO COSTA'}), Object.assign(novaOp('MLK2J09'),{status:'URGÊNCIA'}), novaOp('KLM6N78')];
+  CONF=[{placa:'KLM6N78',tipoExecucao:'ENTRADA',conferenteNome:'ABNER FERNANDO DOS SANTOS',timestamp:{seconds:Date.now()/1000-600}},{placa:'MLK2J09',tipoExecucao:'ENTRADA',conferenteNome:'ABNER FERNANDO DOS SANTOS',timestamp:{seconds:Date.now()/1000-300}}];
+  renderPick(); renderOps();
+}
+function init(){
+  $('hojeLbl').textContent = '— '+hojeBR();
+  preencherForm(); renderOps();
+  if(new URLSearchParams(location.search).get('demo')==='1'){ demo(); return; }
+  if(typeof firebase==='undefined'){ $('stFb').className='bad'; $('stFb').textContent='⚠ Firebase não carregou (internet?)'; loadProgramacao(); return; }
+  const a1 = firebase.initializeApp(SYS1,'sys1'); auth1=a1.auth(); fs1=a1.firestore();
+  auth1.signInWithEmailAndPassword(CFG.sys1Email, CFG.sys1Pass).then(async ()=>{
+    $('stFb').className='ok'; $('stFb').textContent='☁ Conectado';
+    try{
+      const doc = await fs1.collection('dasch_config').doc('painel').get();
+      if(doc.exists){
+        const d = doc.data(); const keepCred = {sys1Email:CFG.sys1Email, sys1Pass:CFG.sys1Pass};
+        CFG = mergeCfg(Object.assign({}, d, keepCred)); syncLista(); preencherForm();
+      }
+    }catch(e){ console.warn(e); }
+    ready = true;
+    // se havia algo só no navegador (sem nuvem), sobe agora
+    renderOps();
+    try{ const app = await fs1.collection('config').doc('app').get(); if(app.exists && app.data().sheetId) P.sheetId = app.data().sheetId; }catch(e){}
+    loadProgramacao();
+    fs1.collection('operacoes').where('dataRef','==',hojeBR()).onSnapshot(s=>{
+      CONF = s.docs.map(d=>d.data()); $('stConf').className='ok'; $('stConf').textContent=`Conferência: ${CONF.length} hoje`; renderOps();
+    }, e=>{ $('stConf').className='bad'; $('stConf').textContent='Conferência: sem acesso'; });
+    // mudanças feitas em outro computador aparecem aqui também
+    fs1.collection('dasch_config').doc('painel').onSnapshot(doc=>{
+      if(!doc.exists || doc.metadata.hasPendingWrites) return;
+      const d = doc.data(); if(d.opsV2 && d.opsV2.dia===hojeBR() && JSON.stringify(d.opsV2.lista)!==JSON.stringify(LISTA)){
+        const foco = document.activeElement && document.activeElement.closest && document.activeElement.closest('#opsList');
+        if(!foco){ CFG.opsV2 = d.opsV2; syncLista(); renderOps(); renderPick(); }
+      }
+    });
+  }).catch(e=>{ $('stFb').className='bad'; $('stFb').textContent='⚠ Login no Sistema de Conferência falhou: '+e.message; loadProgramacao(); });
+  try{
+    const db = firebase.initializeApp(ABS_FB,'abs').database();
+    db.ref('frequencia/colab').on('value', s=>{ ABS.colab=s.val()||{}; $('stAbs').className='ok'; $('stAbs').textContent='Absenteísmo: ok'; renderOps(); }, e=>{ $('stAbs').className='bad'; $('stAbs').textContent='Absenteísmo: sem acesso'; });
+    db.ref('frequencia/mes/'+hojeISO().slice(0,7)).on('value', s=>{ ABS.mes=s.val()||{}; renderOps(); });
+  }catch(e){ console.warn(e); }
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
