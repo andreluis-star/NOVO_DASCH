@@ -173,8 +173,8 @@ textarea{min-height:70px;resize:vertical;}
    Letreiro, data de segurança e acesso são os mesmos do painel atual.
 ===================================================================== */
 const LS_KEY = 'dasch_config_v1';
-const SCREENS = [['ops','Operações do dia (placas)'],['resumo','Resumo + Segurança'],['equipe','Equipe do dia (interna + terceirizada)'],['conf','Conferências por conferente'],['pal','Paletes do dia']];
-const V2_DEF = { dur:{ops:30,resumo:12,equipe:15,conf:12,pal:12}, zoom:{ops:100,resumo:100,equipe:100,conf:100,pal:100}, on:{ops:true,resumo:true,equipe:true,conf:true,pal:true}, intercalar:true, porPagina:0 };
+const SCREENS = [['ops','Operações do dia (placas)'],['resumo','Resumo + Segurança'],['equipe','Equipe do dia (interna + terceirizada)'],['proib','Proibido (regras com ícones)'],['conf','Conferências por conferente'],['pal','Paletes do dia']];
+const V2_DEF = { dur:{ops:30,resumo:12,equipe:15,proib:12,conf:12,pal:12}, zoom:{ops:100,resumo:100,equipe:100,proib:100,conf:100,pal:100}, on:{ops:true,resumo:true,equipe:true,proib:true,conf:true,pal:true}, intercalar:true, porPagina:0 };
 const SHEET_ID_PADRAO = '1R94r4llhbqlzYVGK8YqsyEIJn9bAkBsn6V3NCBl7MDM';
 const MOV_LBL = {carga:'Carga', descarga:'Descarga', carga_descarga:'Carga + Descarga'};
 const STATUS_OPC = [['','Automático'],['URGÊNCIA','🔴 Urgência'],['AGENTES','🔵 Agentes'],['CONCLUÍDO','✔ Concluído (manual)'],['NÃO FOI FEITO','⚪ Não foi feito']];

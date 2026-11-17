@@ -133,6 +133,14 @@ html,body{margin:0;height:100%;background:#000;color:var(--txt);font-family:Inte
 .safety .b .n{font-family:'Barlow Condensed',sans-serif;font-size:22vh;line-height:.95;display:block;}
 .safety .c{background:var(--verde-esc);padding:1.8vh 1vw;text-align:center;font-weight:700;font-size:2.1vh;}
 
+.pb-head{flex:0 0 auto;background:#d62828;color:#fff;text-align:center;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:9vh;letter-spacing:.12em;border-radius:1.6vh;padding:.6vh 0;line-height:1.1;}
+.pb-grid{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:1.6vh 1.4vw;}
+.pb-card{background:#fff;border:.7vh solid #d62828;border-radius:2vh;display:flex;align-items:center;gap:2vw;padding:1.6vh 2vw;min-height:0;}
+.pb-ic{height:100%;max-height:24vh;aspect-ratio:1;flex:0 0 auto;}
+.pb-tx{min-width:0;line-height:1.02;}
+.pb-tx b{display:block;color:#b31b1b;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:5.4vh;text-transform:uppercase;}
+.pb-tx span{display:block;color:#1b2333;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:4.4vh;text-transform:uppercase;margin-top:.6vh;}
+.pb-foot{flex:0 0 auto;text-align:center;color:var(--amarelo);font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:3.4vh;letter-spacing:.06em;}
 /* Equipe */
 .team-kpi{display:flex;align-items:center;gap:1.4vw;margin-bottom:1.2vh;flex:0 0 auto;}
 .team-kpi .big{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:9vh;line-height:.9;color:#5fe08f;}
@@ -217,6 +225,18 @@ html,body{margin:0;height:100%;background:#000;color:var(--txt);font-family:Inte
       </div>
     </section>
 
+    <!-- PROIBIDO -->
+    <section class="screen" id="s-proib">
+      <div class="pb-head">⛔ PROIBIDO ⛔</div>
+      <div class="pb-grid">
+        <div class="pb-card"><svg viewBox="0 0 200 200" class="pb-ic"><circle cx="100" cy="100" r="92" fill="#fff"/><g fill="none" stroke="#1b2333" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><rect x="72" y="42" width="56" height="112" rx="10" fill="#dfe6f2"/><line x1="90" y1="54" x2="110" y2="54"/><circle cx="100" cy="138" r="5" fill="#1b2333"/><rect x="80" y="64" width="40" height="60" rx="3" fill="#7fb0ff" stroke-width="5"/></g><circle cx="100" cy="100" r="86" fill="none" stroke="#d62828" stroke-width="16"/><line x1="40" y1="40" x2="160" y2="160" stroke="#d62828" stroke-width="16" stroke-linecap="round"/></svg><div class="pb-tx"><b>USO DE CELULAR</b><span>NA OPERAÇÃO</span></div></div>
+        <div class="pb-card"><svg viewBox="0 0 200 200" class="pb-ic"><circle cx="100" cy="100" r="92" fill="#fff"/><g fill="none" stroke="#1b2333" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M52 118 V98 a48 48 0 0 1 96 0 V118"/><rect x="42" y="110" width="26" height="44" rx="9" fill="#dfe6f2"/><rect x="132" y="110" width="26" height="44" rx="9" fill="#dfe6f2"/></g><circle cx="100" cy="100" r="86" fill="none" stroke="#d62828" stroke-width="16"/><line x1="40" y1="40" x2="160" y2="160" stroke="#d62828" stroke-width="16" stroke-linecap="round"/></svg><div class="pb-tx"><b>USO DE FONE</b><span>DE OUVIDO</span></div></div>
+        <div class="pb-card"><svg viewBox="0 0 200 200" class="pb-ic"><circle cx="100" cy="100" r="92" fill="#fff"/><g fill="none" stroke="#1b2333" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M44 150 V70 h112 v80"/><line x1="44" y1="150" x2="156" y2="150"/><path d="M60 150 V92 h80 v58" fill="#dfe6f2"/><line x1="60" y1="106" x2="140" y2="106" stroke-width="4"/><line x1="60" y1="120" x2="140" y2="120" stroke-width="4"/><circle cx="100" cy="84" r="0"/><circle cx="100" cy="114" r="9" fill="#1b2333"/><path d="M100 124 v18 M88 132 h24 M100 142 l-8 14 M100 142 l8 14"/></g><circle cx="100" cy="100" r="86" fill="none" stroke="#d62828" stroke-width="16"/><line x1="40" y1="40" x2="160" y2="160" stroke="#d62828" stroke-width="16" stroke-linecap="round"/></svg><div class="pb-tx"><b>SAIR OU ENTRAR</b><span>PELAS DOCAS</span></div></div>
+        <div class="pb-card"><svg viewBox="0 0 200 200" class="pb-ic"><circle cx="100" cy="100" r="92" fill="#fff"/><g fill="none" stroke="#1b2333" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><rect x="40" y="96" width="34" height="34" fill="#e8b46a"/><rect x="58" y="62" width="34" height="34" fill="#e8b46a"/><rect x="74" y="96" width="34" height="34" fill="#e8b46a"/><line x1="40" y1="130" x2="112" y2="130"/><path d="M128 56 v34 a8 8 0 0 0 16 0 v-34 M136 56 v96"/><path d="M158 56 c-10 6 -10 34 0 40 v56"/></g><circle cx="100" cy="100" r="86" fill="none" stroke="#d62828" stroke-width="16"/><line x1="40" y1="40" x2="160" y2="160" stroke="#d62828" stroke-width="16" stroke-linecap="round"/></svg><div class="pb-tx"><b style="font-size:4.8vh">FICAR NO ESTOQUE / EXPEDIÇÃO</b><span>DURANTE A REFEIÇÃO</span></div></div>
+      </div>
+      <div class="pb-foot">REGRAS PARA A SEGURANÇA DE TODOS — CONTAMOS COM VOCÊ!</div>
+    </section>
+
     <!-- EQUIPE DO DIA -->
     <section class="screen" id="s-equipe">
       <div class="row">
@@ -279,13 +299,14 @@ const SCREENS = [
   {k:'ops',    el:'s-ops',    t:'Operações do dia',            s:'Veículos programados · quem é o responsável'},
   {k:'resumo', el:'s-resumo', t:'Resumo do dia',          s:'Números do dia'},
   {k:'equipe', el:'s-equipe', t:'Equipe do dia',                s:'Interna e terceirizada'},
+  {k:'proib',  el:'s-proib',  t:'Atenção',                      s:'Regras da operação'},
   {k:'conf',   el:'s-conf',   t:'Conferências do dia',  s:'Operações finalizadas por conferente'},
   {k:'pal',    el:'s-pal',    t:'Paletes do dia',               s:'Entradas e saídas de paletes'}
 ];
 const V2_DEF = {
-  dur:{ops:30,resumo:12,equipe:15,conf:12,pal:12},
-  zoom:{ops:100,resumo:100,equipe:100,conf:100,pal:100},
-  on:{ops:true,resumo:true,equipe:true,conf:true,pal:true},
+  dur:{ops:30,resumo:12,equipe:15,proib:12,conf:12,pal:12},
+  zoom:{ops:100,resumo:100,equipe:100,proib:100,conf:100,pal:100},
+  on:{ops:true,resumo:true,equipe:true,proib:true,conf:true,pal:true},
   intercalar:true, porPagina:0
 };
 function defCfg(){ return {
@@ -780,7 +801,7 @@ function demo(){
   CFG.safetyDate = '2026-09-01';
   CFG.ticker = 'Atenção: inventário do pátio às 16h · Use sempre o EPI · Bom trabalho a todos!';
   const only = new URLSearchParams(location.search).get('tela');
-  if(only){ CFG.v2.on = {ops:false,resumo:false,equipe:false,conf:false,pal:false}; CFG.v2.on[only]=true; CFG.v2.intercalar=false; CFG.v2.dur[only]=9999; }
+  if(only){ CFG.v2.on = {ops:false,resumo:false,equipe:false,proib:false,conf:false,pal:false}; CFG.v2.on[only]=true; CFG.v2.intercalar=false; CFG.v2.dur[only]=9999; }
 }
 
 /* ---------------- início ---------------- */
